@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>多 Agent 医疗咨询平台</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+         background: #f5f7fa; color: #1f2329; height: 100vh; display: flex; flex-direction: column; }
+  header { background: #1e5eff; color: #fff; padding: 14px 20px; display: flex;
+           align-items: center; justify-content: space-between; }
+  header h1 { font-size: 17px; font-weight: 600; }
+  header .sub { font-size: 12px; opacity: .85; margin-top: 2px; }
+  .actions button { background: rgba(255,255,255,.18); color: #fff; border: none;
+    border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+  .actions button:hover { background: rgba(255,255,255,.3); }
+  #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+  .msg { max-width: 76%; padding: 10px 14px; border-radius: 10px; line-height: 1.65;
+         font-size: 14px; white-space: pre-wrap; word-break: break-word; }
+  .user { align-self: flex-end; background: #1e5eff; color: #fff; }
+  .bot { align-self: flex-start; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .trace { font-size: 12px; color: #8a919f; margin-top: 6px; }
+  .trace b { color: #1e5eff; font-weight: 600; }
+  .warn { color: #e64340; }
+  #inputbar { padding: 14px 20px; background: #fff; border-top: 1px solid #e5e6eb;
+             display: flex; gap: 10px; }
+  #input { flex: 1; padding: 10px 14px; border: 1px solid #dcdfe6; border-radius: 8px;
+           font-size: 14px; outline: none; resize: none; max-height: 120px; }
+  #input:focus { border-color: #1e5eff; }
+  #send { background: #1e5eff; color: #fff; border: none; border-radius: 8px;
+          padding: 0 22px; cursor: pointer; font-size: 14px; }
+  #send:disabled { opacity: .5; cursor: not-allowed; }
+  .quick { display: flex; gap: 8px; padding: 10px 20px 0; flex-wrap: wrap; }
+  .quick button { background: #fff; border: 1px solid #dcdfe6; border-radius: 16px;
+    padding: 5px 12px; font-size: 12px; color: #4e5969; cursor: pointer; }
+  .quick button:hover { border-color: #1e5eff; color: #1e5eff; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🩺 多 Agent 医疗咨询平台</h1>
+    <div class="sub">LangGraph 主控路由 · 医疗知识子图 + 通用工具子图 · 急症护栏</div>
+  </div>
+  <div class="actions">
+    <button onclick="newSession()">新会话</button>
+  </div>
+</header>
+<div class="quick">
+  <button onclick="sendQ('感冒了怎么办？')">感冒了怎么办？</button>
+  <button onclick="sendQ('那糖尿病呢？')">那糖尿病呢？（多轮）</button>
+  <button onclick="sendQ('今天几号？')">今天几号？（工具）</button>
+  <button onclick="sendQ('85*3+12等于多少？')">85*3+12？（计算器）</button>
+  <button onclick="sendQ('我爸爸突然胸痛大汗，怎么办？')">突发胸痛（急症护栏）</button>
+</div>
+<div id="chat"></div>
+<div id="inputbar">
+  <textarea id="input" rows="1" placeholder="输入你的问题，Enter 发送，Shift+Enter 换行"></textarea>
+  <button id="send" onclick="send()">发送</button>
+</div>
+<script>
+const chat = document.getElementById('chat');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('send');
+let sessionId = 's' + Date.now();
+
+function addMsg(text, who, trace) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + who;
+  div.textContent = text;
+  if (trace && trace.length) {
+    const t = document.createElement('div');
+    t.className = 'trace';
+    t.innerHTML = '路由轨迹：<b>' + trace.join(' → ') + '</b>';
+    div.appendChild(t);
+  }
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function newSession() {
+  sessionId = 's' + Date.now();
+  chat.innerHTML = '';
+  addMsg('已开启新会话。', 'bot');
+}
+
+async function send() {
+  const q = input.value.trim();
+  if (!q) return;
+  addMsg(q, 'user');
+  input.value = '';
+  sendBtn.disabled = true;
+  try {
+    const r = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q, session_id: sessionId })
+    });
+    const data = await r.json();
+    if (data.error) { addMsg('服务异常：' + data.error, 'bot'); return; }
+    addMsg(data.answer, 'bot', data.route_trace);
+  } catch (e) {
+    addMsg('网络错误：' + e.message, 'bot');
+  } finally {
+    sendBtn.disabled = false;
+  }
+}
+
+function sendQ(q) { input.value = q; send(); }
+
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+</script>
+</body>
+</html>

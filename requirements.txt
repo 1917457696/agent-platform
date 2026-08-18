@@ -1,0 +1,16 @@
+# 多 Agent 医疗咨询平台（agent-platform）依赖
+# 与 rag-assistant 同作者独立项目；运行环境：conda env EduRAG（Python 3.10.18）
+langchain>=1.0,<2.0
+langchain-community
+langchain-core
+langchain-openai
+langchain-text-splitters
+langgraph
+faiss-cpu
+openai>=1.40
+fastapi
+uvicorn
+pydantic
+python-dotenv
+# MCP（可选，暴露平台工具为 MCP Server 时安装）
+# mcp
