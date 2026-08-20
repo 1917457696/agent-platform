@@ -65,10 +65,17 @@ const input = document.getElementById('input');
 const sendBtn = document.getElementById('send');
 let sessionId = 's' + Date.now();
 
-function addMsg(text, who, trace) {
+function addMsg(text, who, trace, channel) {
   const div = document.createElement('div');
   div.className = 'msg ' + who;
   div.textContent = text;
+  if (channel && channel !== 'agent') {
+    const tag = document.createElement('div');
+    tag.className = 'trace';
+    const map = { cache: '⚡ Redis 缓存命中', faq: '📚 FAQ 命中', guard: '🚨 急症护栏' };
+    tag.innerHTML = '<b>' + (map[channel] || channel) + '</b>';
+    div.appendChild(tag);
+  }
   if (trace && trace.length) {
     const t = document.createElement('div');
     t.className = 'trace';
@@ -99,7 +106,7 @@ async function send() {
     });
     const data = await r.json();
     if (data.error) { addMsg('服务异常：' + data.error, 'bot'); return; }
-    addMsg(data.answer, 'bot', data.route_trace);
+    addMsg(data.answer, 'bot', data.route_trace, data.channel);
   } catch (e) {
     addMsg('网络错误：' + e.message, 'bot');
   } finally {
