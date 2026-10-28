@@ -377,6 +377,7 @@ function App() {
   const [trainingOpen, setTrainingOpen] = useState(false);
   const [trainingCaseId, setTrainingCaseId] = useState("chest-pain");
   const [trainingDraft, setTrainingDraft] = useState("");
+  const [trainingJudgement, setTrainingJudgement] = useState("");
   const [trainingMessages, setTrainingMessages] = useState<TrainingMessage[]>([]);
   const [trainingAsked, setTrainingAsked] = useState<string[]>([]);
   const [trainingReport, setTrainingReport] = useState<TrainingReport | null>(null);
@@ -437,10 +438,17 @@ function App() {
     // 只滚动消息列表本身，避免 scrollIntoView 把整个长页面拉到最底部。
     const messageList = messageListRef.current;
     if (!messageList) return;
+    const pageScrollY = window.scrollY;
     messageList.scrollTo({
       top: messageList.scrollHeight,
-      behavior: reducedMotion ? "auto" : "smooth",
+      behavior: "auto",
     });
+    const frame = window.requestAnimationFrame(() => {
+      if (Math.abs(window.scrollY - pageScrollY) > 1) {
+        window.scrollTo({ top: pageScrollY, behavior: "auto" });
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [messages, reducedMotion]);
 
   const goToSlide = (next: number) => {
@@ -624,6 +632,7 @@ function App() {
     setTrainingCaseId(selected.id);
     setTrainingOpen(true);
     setTrainingDraft("");
+    setTrainingJudgement("");
     setTrainingAsked([]);
     setTrainingReport(null);
     setTrainingMessages([{
@@ -657,12 +666,17 @@ function App() {
 
   const finishTraining = () => {
     if (!trainingMessages.length || trainingReport) return;
+    if (!trainingJudgement.trim()) {
+      setNotice("请先写下你的初步判断，再提交训练报告。");
+      window.setTimeout(() => setNotice(""), 2200);
+      return;
+    }
     const selected = trainingCases.find((item) => item.id === trainingCaseId) ?? trainingCases[0];
     const total = selected.keyQuestions.length;
     const completeness = Math.min(98, 45 + Math.round((trainingAsked.length / total) * 53));
     const redFlagAsked = trainingAsked.includes("放射与伴随症状") || trainingAsked.includes("呼吸与意识");
     const coverage = Math.min(96, 42 + Math.round((trainingAsked.length / total) * 54));
-    const reasoning = Math.min(94, 58 + trainingAsked.length * 6);
+    const reasoning = Math.min(94, 62 + trainingAsked.length * 6);
     const safety = redFlagAsked ? 91 : 52;
     const overall = Math.round(completeness * 0.3 + coverage * 0.3 + reasoning * 0.2 + safety * 0.2);
     setTrainingReport({
@@ -687,6 +701,7 @@ function App() {
     }
     setTrainingOpen(false);
     setTrainingMessages([]);
+    setTrainingJudgement("");
     setTrainingReport(null);
     setDemoStep("idle");
   };
@@ -1042,13 +1057,14 @@ function App() {
                         <textarea id="training-question" value={trainingDraft} onChange={(event) => setTrainingDraft(event.target.value)} placeholder="像医生一样主动提问：疼痛在哪里？持续多久？有没有放射或大汗？" rows={2} />
                         <button type="submit" disabled={!trainingDraft.trim()}>追问患者 <Send size={15} /></button>
                       </form>
-                      <div className="training-footer"><span>已覆盖 {trainingAsked.length} / {(trainingCases.find((item) => item.id === trainingCaseId) ?? trainingCases[0]).keyQuestions.length} 个核心维度</span><button type="button" onClick={finishTraining} disabled={trainingMessages.length < 2}>结束问诊并提交 <Check size={15} /></button></div>
+                      <div className="training-judgement"><label htmlFor="training-judgement">初步判断 <span>先写你的思路，系统不会提前展示标准答案</span></label><textarea id="training-judgement" value={trainingJudgement} onChange={(event) => setTrainingJudgement(event.target.value)} placeholder="我目前的初步判断是……依据包括……还需要排除……" rows={2} /></div>
+                      <div className="training-footer"><span>已覆盖 {trainingAsked.length} / {(trainingCases.find((item) => item.id === trainingCaseId) ?? trainingCases[0]).keyQuestions.length} 个核心维度</span><button type="button" onClick={finishTraining} disabled={trainingMessages.length < 2 || !trainingJudgement.trim()}>结束问诊并提交 <Check size={15} /></button></div>
                     </>
                   ) : (
                     <div className="training-report">
                       <div className="report-heading"><div><span className="section-number">CLINICAL TRAINING REPORT</span><h3>这次问诊，你学到了什么？</h3><p>评分由结构化覆盖规则生成，反馈用于训练，不替代临床判断。</p></div><div className="overall-score"><strong>{trainingReport.overall}</strong><span>综合评分</span></div></div>
                       <div className="score-grid">{[["问诊完整度", trainingReport.completeness], ["关键症状覆盖", trainingReport.coverage], ["临床思维", trainingReport.reasoning], ["风险意识", trainingReport.safety]].map(([label, score]) => <div className="score-card" key={String(label)}><span>{String(label)}</span><strong>{String(score)}</strong><i><b style={{ width: `${Number(score)}%` }} /></i></div>)}</div>
-                      <div className="report-columns"><div><h4>你做得好的地方</h4><p>你已经覆盖了 {trainingReport.asked.length} 个核心问诊维度，并保留了连续追问的上下文。下一次可以更早确认高风险伴随症状。</p><h4>为什么重要</h4><p>临床训练不只看问了多少，而是看能否优先获取会改变风险分层和下一步决策的信息。</p></div><div><h4>你遗漏的问题</h4>{trainingReport.missed.length ? <ul>{trainingReport.missed.map((item) => <li key={item}><span>⚠</span>{item}</li>)}</ul> : <p className="report-good">✓ 核心维度覆盖完整</p>}<h4>下一步建议</h4><p>复习“胸痛危险信号与问诊顺序”，再用同一病例尝试更短、更有优先级的提问路径。</p></div></div>
+                      <div className="report-columns"><div><h4>你的初步判断</h4><p className="report-judgement">{trainingJudgement}</p><h4>你做得好的地方</h4><p>你已经覆盖了 {trainingReport.asked.length} 个核心问诊维度，并保留了连续追问的上下文。下一次可以更早确认高风险伴随症状。</p><h4>为什么重要</h4><p>临床训练不只看问了多少，而是看能否优先获取会改变风险分层和下一步决策的信息。</p></div><div><h4>你遗漏的问题</h4>{trainingReport.missed.length ? <ul>{trainingReport.missed.map((item) => <li key={item}><span>⚠</span>{item}</li>)}</ul> : <p className="report-good">✓ 核心维度覆盖完整</p>}<h4>下一步建议</h4><p>复习“胸痛危险信号与问诊顺序”，再用同一病例尝试更短、更有优先级的提问路径。</p></div></div>
                       <div className="reasoning-timeline"><h4>Clinical Reasoning Timeline</h4><div>{(trainingCases.find((item) => item.id === trainingCaseId) ?? trainingCases[0]).keyQuestions.map((item, index) => <span className={trainingReport.asked.includes(item.label) ? "timeline-step is-done" : "timeline-step is-missed"} key={item.label}><b>{String(index + 1).padStart(2, "0")}</b><i>{trainingReport.asked.includes(item.label) ? "✓" : "⚠"}</i><em>{item.label}</em></span>)}</div></div>
                     </div>
                   )}

@@ -14,6 +14,7 @@ await mkdir(evidenceDir, { recursive: true });
 const results = {
   url: baseUrl,
   desktop: {},
+  training: {},
   mobile: {},
   reducedMotion: {},
   pageErrors: [],
@@ -125,9 +126,17 @@ try {
   await desktopPage.getByRole("button", { name: "进入病例训练" }).click();
   await desktopPage.locator("#training-question").fill("疼痛在哪里、是什么性质、持续多久，活动和休息有什么关系，有没有放射到左肩或大汗，既往有高血压吗，是否过敏以及家族史如何？");
   await desktopPage.getByRole("button", { name: "追问患者" }).click();
+  await desktopPage.locator("#training-judgement").fill("优先考虑需要排除急性冠脉综合征，依据是活动后胸痛、压榨感和向左肩放射；还需要结合危险信号和既往史进一步判断。");
   await desktopPage.getByRole("button", { name: "结束问诊并提交" }).click();
   await desktopPage.getByText("Clinical Reasoning Timeline").waitFor();
   assert(await desktopPage.getByText("综合评分").isVisible(), "病例训练报告未生成");
+  results.training = {
+    caseSelection: true,
+    patientRoleplay: true,
+    judgementSubmission: true,
+    reportRendered: true,
+    reasoningTimeline: true,
+  };
   await desktopPage.getByRole("button", { name: "退出病例训练" }).click();
   await desktopPage.getByRole("button", { name: "新建对话" }).click();
   await desktopPage.locator(".conversation-item.is-active").waitFor();
