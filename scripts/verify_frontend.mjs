@@ -112,9 +112,16 @@ try {
   assert(storageState.localStorageCount === 0, "API Key 页面意外使用了 localStorage");
 
   await desktopPage.locator("#workspace").scrollIntoViewIfNeeded();
+  const pageScrollBeforeChat = await desktopPage.evaluate(() => window.scrollY);
   await desktopPage.locator("#question").fill("浏览器验收问题");
   await desktopPage.locator("#question").press("Enter");
   await desktopPage.getByText("这是浏览器验收返回的模拟回答。").waitFor();
+  await desktopPage.waitForTimeout(450);
+  const pageScrollAfterChat = await desktopPage.evaluate(() => window.scrollY);
+  assert(
+    Math.abs(pageScrollAfterChat - pageScrollBeforeChat) < 80,
+    `发送消息后页面滚动位置异常变化：${pageScrollBeforeChat} -> ${pageScrollAfterChat}`,
+  );
   assert(capturedRequest?.keyInHeader, "API Key 未通过专用请求头发送");
   assert(!capturedRequest?.keyInBody, "API Key 被写入请求体");
 
@@ -143,6 +150,7 @@ try {
     keyStoredInSessionOnly: true,
     keySentInHeaderOnly: true,
     chatResponseRendered: true,
+    pageScrollStableAfterChat: true,
   };
   await desktop.close();
 

@@ -182,7 +182,7 @@ function App() {
   const [notice, setNotice] = useState("");
   const pointerStart = useRef<number | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
-  const messageEndRef = useRef<HTMLDivElement | null>(null);
+  const messageListRef = useRef<HTMLDivElement | null>(null);
 
   const hasKey = Boolean(credentials.llmKey.trim());
 
@@ -218,7 +218,13 @@ function App() {
   }, [reducedMotion]);
 
   useEffect(() => {
-    messageEndRef.current?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth" });
+    // 只滚动消息列表本身，避免 scrollIntoView 把整个长页面拉到最底部。
+    const messageList = messageListRef.current;
+    if (!messageList) return;
+    messageList.scrollTo({
+      top: messageList.scrollHeight,
+      behavior: reducedMotion ? "auto" : "smooth",
+    });
   }, [messages, reducedMotion]);
 
   const goToSlide = (next: number) => {
@@ -598,7 +604,7 @@ function App() {
                 <button type="button" onClick={openSettings} aria-label="打开设置"><Settings2 size={18} /></button>
               </div>
 
-              <div className="message-list" aria-live="polite">
+              <div className="message-list" aria-live="polite" ref={messageListRef}>
                 {messages.map((message) => (
                   <article className={`message ${message.role}`} key={message.id}>
                     <div className="message-avatar" aria-hidden="true">
@@ -622,7 +628,6 @@ function App() {
                     <div className="thinking"><span /><span /><span /> 正在编排任务</div>
                   </article>
                 )}
-                <div ref={messageEndRef} />
               </div>
 
               {messages.length === 1 && (
