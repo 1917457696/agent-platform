@@ -117,6 +117,9 @@ try {
   assert(storageState.localStorageCount === 0, "API Key 页面意外使用了 localStorage");
 
   await desktopPage.locator("#workspace").scrollIntoViewIfNeeded();
+  assert(await desktopPage.locator(".conversation-list").isVisible(), "桌面端对话记录侧栏不可见");
+  await desktopPage.getByRole("button", { name: "新建对话" }).click();
+  assert(await desktopPage.locator(".conversation-item.is-active").count() === 1, "新建对话后当前会话未高亮");
   const pageScrollBeforeChat = await desktopPage.evaluate(() => window.scrollY);
   await desktopPage.locator("#question").fill("浏览器验收问题");
   await desktopPage.locator("#question").press("Enter");

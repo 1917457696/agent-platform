@@ -17,6 +17,7 @@ import {
   LockKeyhole,
   Menu,
   MessageSquareText,
+  Plus,
   RefreshCw,
   Route,
   Send,
@@ -49,6 +50,13 @@ type Message = {
   content: string;
   channel?: string;
   trace?: string[];
+};
+
+type Conversation = {
+  id: string;
+  title: string;
+  updatedAt: number;
+  messages: Message[];
 };
 
 const defaultCredentials: Credentials = {
@@ -129,6 +137,17 @@ const starterPrompts = [
 
 const sessionKey = "qixu.credentials.v1";
 const chatSessionKey = "qixu.chat-session.v1";
+const conversationsKey = "qixu.conversations.v1";
+
+function welcomeMessage(): Message {
+  return {
+    id: "welcome",
+    role: "assistant",
+    content:
+      "你好，我是岐序中医教培智能助教。配置模型 API Key 后，可以学习中医经典、四诊与辨证论治，也可以让我帮你拆解合成医案。涉及个人诊疗时，我会提示转教师或执业医师审核。",
+    channel: "system",
+  };
+}
 
 function readCredentials(): Credentials {
   try {
@@ -145,6 +164,36 @@ function getChatSession(): string {
   const next = crypto.randomUUID();
   sessionStorage.setItem(chatSessionKey, next);
   return next;
+}
+
+function readConversations(): Conversation[] {
+  try {
+    const raw = sessionStorage.getItem(conversationsKey);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is Conversation => (
+      item && typeof item.id === "string" && typeof item.title === "string"
+      && typeof item.updatedAt === "number" && Array.isArray(item.messages)
+    )).slice(0, 12);
+  } catch {
+    return [];
+  }
+}
+
+function conversationTitle(messages: Message[]): string {
+  const firstQuestion = messages.find((message) => message.role === "user")?.content.trim();
+  if (!firstQuestion) return "新中医学习对话";
+  return firstQuestion.length > 24 ? `${firstQuestion.slice(0, 24)}…` : firstQuestion;
+}
+
+function formatConversationTime(timestamp: number): string {
+  const date = new Date(timestamp);
+  const now = new Date();
+  if (date.toDateString() === now.toDateString()) {
+    return `今天 ${date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`;
+  }
+  return date.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
 }
 
 function useReducedMotion() {
@@ -209,15 +258,12 @@ function App() {
   const [draftCredentials, setDraftCredentials] = useState<Credentials>(credentials);
   const [showKey, setShowKey] = useState(false);
   const [question, setQuestion] = useState("");
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content:
-        "你好，我是岐序中医教培智能助教。配置模型 API Key 后，可以学习中医经典、四诊与辨证论治，也可以让我帮你拆解合成医案。涉及个人诊疗时，我会提示转教师或执业医师审核。",
-      channel: "system",
-    },
-  ]);
+  const [activeSessionId, setActiveSessionId] = useState(getChatSession);
+  const [conversations, setConversations] = useState<Conversation[]>(readConversations);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const active = readConversations().find((conversation) => conversation.id === getChatSession());
+    return active?.messages?.length ? active.messages : [welcomeMessage()];
+  });
   const [isSending, setIsSending] = useState(false);
   const [notice, setNotice] = useState("");
   const pointerStart = useRef<number | null>(null);
@@ -225,6 +271,22 @@ function App() {
   const messageListRef = useRef<HTMLDivElement | null>(null);
 
   const hasKey = Boolean(credentials.llmKey.trim());
+
+  useEffect(() => {
+    setConversations((current) => {
+      const next = [
+        ...current.filter((conversation) => conversation.id !== activeSessionId),
+        {
+          id: activeSessionId,
+          title: conversationTitle(messages),
+          updatedAt: Date.now(),
+          messages: messages.slice(-40),
+        },
+      ].sort((left, right) => right.updatedAt - left.updatedAt).slice(0, 12);
+      sessionStorage.setItem(conversationsKey, JSON.stringify(next));
+      return next;
+    });
+  }, [activeSessionId, messages]);
 
   useEffect(() => {
     if (reducedMotion || carouselPaused) return;
@@ -358,7 +420,7 @@ function App() {
         headers,
         body: JSON.stringify({
           question: content,
-          session_id: getChatSession(),
+          session_id: activeSessionId,
           provider: {
             llm_base_url: credentials.llmBaseUrl,
             llm_model: credentials.llmModel,
@@ -409,7 +471,7 @@ function App() {
   };
 
   const resetConversation = async () => {
-    const sessionId = getChatSession();
+    const sessionId = activeSessionId;
     try {
       await fetch("/api/reset", {
         method: "POST",
@@ -417,11 +479,30 @@ function App() {
         body: JSON.stringify({ session_id: sessionId }),
       });
     } finally {
-      sessionStorage.removeItem(chatSessionKey);
-      setMessages((current) => current.slice(0, 1));
+      setMessages([welcomeMessage()]);
       setNotice("会话已重置。" );
       window.setTimeout(() => setNotice(""), 2500);
     }
+  };
+
+  const createConversation = () => {
+    if (isSending) return;
+    const nextId = crypto.randomUUID();
+    sessionStorage.setItem(chatSessionKey, nextId);
+    setActiveSessionId(nextId);
+    setMessages([welcomeMessage()]);
+    setQuestion("");
+    setNotice("已新建对话。" );
+    window.setTimeout(() => setNotice(""), 1800);
+  };
+
+  const selectConversation = (conversation: Conversation) => {
+    if (isSending || conversation.id === activeSessionId) return;
+    sessionStorage.setItem(chatSessionKey, conversation.id);
+    setActiveSessionId(conversation.id);
+    setMessages(conversation.messages.length ? conversation.messages : [welcomeMessage()]);
+    setQuestion("");
+    setNotice("");
   };
 
   return (
@@ -631,6 +712,29 @@ function App() {
           <div className="console" data-reveal>
             <aside className="console-sidebar">
               <div className="console-brand"><Activity size={18} /><span>协理控制台</span></div>
+              <div className="history-heading">
+                <span>对话记录</span>
+                <small>当前标签页</small>
+              </div>
+              <button type="button" className="new-chat-button" onClick={createConversation} disabled={isSending}>
+                <Plus size={14} /> 新建对话
+              </button>
+              <div className="conversation-list" aria-label="对话历史">
+                {conversations.map((conversation) => (
+                  <button
+                    type="button"
+                    key={conversation.id}
+                    className={conversation.id === activeSessionId ? "conversation-item is-active" : "conversation-item"}
+                    onClick={() => selectConversation(conversation)}
+                    disabled={isSending}
+                  >
+                    <MessageSquareText size={14} />
+                    <span><strong>{conversation.title}</strong><small>{formatConversationTime(conversation.updatedAt)}</small></span>
+                  </button>
+                ))}
+                {conversations.length === 0 && <p className="history-empty">还没有提问，开始一段中医学习对话吧。</p>}
+              </div>
+              <p className="history-caption">演示记录仅保存在当前标签页，不跨设备同步。</p>
               <div className="console-metric">
                 <span>RUNTIME</span><strong>{hasKey ? "READY" : "STANDBY"}</strong>
               </div>
