@@ -351,6 +351,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .demo-button { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 9px 8px; border: 1px solid rgba(216,200,150,.53); background: #d8c896; color: var(--green); font-size: 10px; cursor: pointer; transition: transform 160ms ease, background 160ms ease; }
 .demo-button:hover:not(:disabled) { transform: translateY(-1px); background: #eee0b0; }
 .demo-button:disabled { opacity: .53; cursor: not-allowed; }
+.training-launch-button { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 7px; padding: 8px; border: 1px solid rgba(251,248,239,.2); background: transparent; color: rgba(251,248,239,.75); font-size: 9px; cursor: pointer; }
+.training-launch-button:hover:not(:disabled) { background: rgba(251,248,239,.08); color: white; }
+.training-launch-button:disabled { opacity: .42; cursor: not-allowed; }
 .history-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
 .history-heading span { font-size: 11px; font-weight: 600; }
 .history-heading small { color: rgba(251,248,239,.4); font-size: 8px; }
@@ -383,7 +386,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .chat-header strong { font-family: var(--serif); font-size: 14px; }
 .chat-header small { margin-left: 6px; color: var(--muted); font-size: 9px; }
 .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #688e65; box-shadow: 0 0 0 4px rgba(104,142,101,.12); }
-.chat-header button { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--line); background: transparent; cursor: pointer; }
+.chat-header-actions { display: flex; align-items: center; gap: 8px; }
+.chat-header button { display: grid; place-items: center; min-width: 34px; height: 34px; padding: 0 8px; border: 1px solid var(--line); background: transparent; cursor: pointer; }
+.chat-header-actions button:first-child { width: auto; color: var(--green); font-size: 10px; }
 .message-list { flex: 1; max-height: 440px; min-height: 310px; overflow-y: auto; padding: 29px clamp(22px, 4vw, 55px); scrollbar-width: thin; scrollbar-color: rgba(19,35,31,.2) transparent; }
 .message { display: flex; gap: 12px; max-width: 88%; margin-bottom: 27px; }
 .message.user { flex-direction: row-reverse; margin-left: auto; }
@@ -414,6 +419,36 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .composer-footer button { display: grid; place-items: center; width: 38px; height: 38px; border: 0; background: var(--vermillion); color: white; cursor: pointer; transition: transform 160ms ease, opacity 160ms ease; }
 .composer-footer button:hover:not(:disabled) { transform: translateY(-2px); }
 .composer-footer button:disabled { opacity: .3; cursor: not-allowed; }
+
+.training-workspace { flex: 1; min-height: 621px; overflow-y: auto; padding: 27px clamp(22px, 4vw, 55px) 29px; background: #f7f3e9; }
+.training-case-picker { display: flex; align-items: flex-end; justify-content: space-between; gap: 25px; }
+.training-case-picker h3, .training-report h3 { margin: 0; font-family: var(--serif); font-size: clamp(24px, 3vw, 36px); font-weight: 600; line-height: 1.2; }
+.training-case-picker p, .report-heading p { margin: 8px 0 0; color: var(--muted); font-size: 11px; line-height: 1.7; }
+.training-case-picker label { display: grid; gap: 6px; min-width: 190px; color: var(--muted); font-size: 9px; }
+.training-case-picker select { height: 37px; border: 1px solid var(--line); background: white; color: var(--green); padding: 0 10px; outline: none; font-size: 10px; }
+.training-meta-row { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 20px; }
+.training-meta-row span { padding: 5px 8px; border: 1px solid var(--line); color: var(--muted); font-size: 9px; }
+.training-dialogue { display: grid; gap: 13px; max-height: 300px; margin-top: 21px; overflow-y: auto; padding: 16px; border: 1px solid var(--line); background: rgba(255,255,255,.54); }
+.training-message { max-width: 78%; }
+.training-message.student { justify-self: end; text-align: right; }
+.training-message span { display: block; margin-bottom: 5px; color: var(--muted); font-size: 9px; }
+.training-message p { display: inline-block; margin: 0; padding: 11px 13px; background: white; border: 1px solid rgba(19,35,31,.11); font-size: 12px; line-height: 1.7; text-align: left; }
+.training-message.student p { background: var(--green); color: var(--bone); border-color: var(--green); }
+.training-message small { display: block; margin-top: 4px; color: var(--vermillion); font-size: 8px; }
+.training-composer { display: grid; grid-template-columns: 1fr auto; gap: 9px; margin-top: 13px; padding: 9px; border: 1px solid var(--line); background: white; }
+.training-composer textarea { min-height: 50px; resize: vertical; border: 0; outline: 0; padding: 5px; color: var(--ink); font-size: 11px; line-height: 1.6; }
+.training-composer button, .training-footer button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; align-self: end; min-height: 35px; padding: 0 12px; border: 0; background: var(--green); color: white; font-size: 10px; cursor: pointer; }
+.training-composer button:disabled, .training-footer button:disabled { opacity: .35; cursor: not-allowed; }
+.training-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; color: var(--muted); font-size: 9px; }
+.training-footer button { background: var(--vermillion); }
+.training-report { max-width: 860px; margin: 0 auto; }
+.report-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 25px; }
+.overall-score { display: grid; justify-items: center; min-width: 98px; padding: 11px 13px; border: 1px solid var(--vermillion); color: var(--vermillion); }
+.overall-score strong { font-family: var(--serif); font-size: 43px; line-height: 1; }.overall-score span { margin-top: 4px; font-size: 8px; letter-spacing: .08em; }
+.score-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 25px; }
+.score-card { padding: 12px; border: 1px solid var(--line); background: white; }.score-card span { display: block; color: var(--muted); font-size: 9px; }.score-card strong { display: block; margin-top: 8px; font-family: var(--serif); font-size: 26px; font-weight: 600; }.score-card i { display: block; height: 3px; margin-top: 9px; background: #e9e1d2; }.score-card b { display: block; height: 100%; background: var(--vermillion); }
+.report-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 26px; padding-top: 21px; border-top: 1px solid var(--line); }.report-columns h4, .reasoning-timeline h4 { margin: 0 0 9px; font-family: var(--serif); font-size: 16px; }.report-columns h4:not(:first-child) { margin-top: 21px; }.report-columns p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.75; }.report-columns ul { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 10px; }.report-columns li { display: flex; gap: 7px; align-items: flex-start; }.report-columns li span { color: var(--vermillion); }.report-good { color: #56815a !important; }
+.reasoning-timeline { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--line); }.reasoning-timeline > div { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 6px; }.timeline-step { position: relative; display: grid; grid-template-columns: auto auto; gap: 6px; min-width: 112px; padding: 10px 9px; border: 1px solid var(--line); background: white; }.timeline-step b { color: var(--muted); font-size: 8px; }.timeline-step i { font-style: normal; color: var(--vermillion); font-size: 11px; }.timeline-step em { grid-column: 1 / -1; color: var(--ink); font-size: 9px; font-style: normal; line-height: 1.4; }.timeline-step.is-done { border-bottom: 2px solid #5f8b63; }.timeline-step.is-done i { color: #5f8b63; }.timeline-step.is-missed { background: #fbf3eb; }
 
 .closing-statement { position: relative; min-height: 470px; display: grid; place-items: center; text-align: center; overflow: hidden; background: var(--paper); }
 .closing-statement::before, .closing-statement::after { content: ""; position: absolute; top: 50%; width: 20vw; height: 1px; background: var(--line); }
@@ -503,6 +538,7 @@ footer > a { display: flex; align-items: center; gap: 7px; font-size: 10px; lett
   .workspace-status { grid-template-columns: auto 1fr; }.workspace-status button { grid-column: 2; padding: 0; }
   .workspace { padding-left: 0; padding-right: 0; }.workspace-heading { padding: 0 18px; }.console { border-left:0; border-right:0; min-height:650px; }
   .chat-header { padding:0 16px; }.message-list { padding:24px 16px; }.message { max-width:96%; }.message-content > p { font-size:12px; }
+  .training-workspace { padding: 22px 16px 25px; }.training-case-picker { display: block; }.training-case-picker label { margin-top: 16px; }.training-case-picker select { width: 100%; }.training-dialogue { max-height: 260px; }.training-message { max-width: 94%; }.training-composer { grid-template-columns: 1fr; }.training-composer button { min-height: 37px; }.training-footer { align-items: stretch; flex-direction: column; }.training-footer button { width: 100%; }.score-grid { grid-template-columns: repeat(2, 1fr); }.report-heading { display: block; }.overall-score { width: 100px; margin-top: 16px; }.report-columns { grid-template-columns: 1fr; gap: 0; }.reasoning-timeline > div { margin-right: -16px; }
   .starter-prompts { padding-left:16px; padding-right:16px; }.starter-prompts > div { display:grid; }.starter-prompts button { justify-content:space-between; }
   .composer { margin-left:12px; margin-right:12px; margin-bottom:18px; }
   .closing-statement { min-height:390px; }.closing-statement::before,.closing-statement::after { display:none; }

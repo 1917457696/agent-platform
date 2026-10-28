@@ -122,6 +122,13 @@ try {
   await desktopPage.getByText("学习反馈").waitFor();
   await desktopPage.getByText("teacher_review_required").waitFor();
   assert(await desktopPage.getByText("本地陪练演示完成：追问、来源、反馈和人工审核均已展示。").isVisible(), "本地陪练 Demo 未完成");
+  await desktopPage.getByRole("button", { name: "进入病例训练" }).click();
+  await desktopPage.locator("#training-question").fill("疼痛在哪里、是什么性质、持续多久，活动和休息有什么关系，有没有放射到左肩或大汗，既往有高血压吗，是否过敏以及家族史如何？");
+  await desktopPage.getByRole("button", { name: "追问患者" }).click();
+  await desktopPage.getByRole("button", { name: "结束问诊并提交" }).click();
+  await desktopPage.getByText("Clinical Reasoning Timeline").waitFor();
+  assert(await desktopPage.getByText("综合评分").isVisible(), "病例训练报告未生成");
+  await desktopPage.getByRole("button", { name: "退出病例训练" }).click();
   await desktopPage.getByRole("button", { name: "新建对话" }).click();
   await desktopPage.locator(".conversation-item.is-active").waitFor();
   assert(await desktopPage.locator(".conversation-item.is-active").count() >= 1, "新建对话后当前会话未高亮");

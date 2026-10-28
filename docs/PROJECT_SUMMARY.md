@@ -1,0 +1,39 @@
+# 临床学习与问诊训练平台项目总结
+
+## 原项目
+
+原项目是面向中医继续教育的 AI 问答与问诊辅助工具，具备 React 前端、FastAPI API、Agent/RAG、多轮会话、SSE 流式输出、来源展示和安全边界。
+
+## 本次升级
+
+本次将产品叙事从“AI 问诊 Agent”升级为“AI 临床学习与问诊训练平台”，新增稳定的本地病例训练路径：
+
+- 内置胸痛、咳嗽、发热三个结构化合成病例；
+- 学员扮演医生，AI 按病例字段扮演患者；
+- 通过关键词归一化记录核心问诊维度覆盖；
+- 支持结束问诊并生成四项评分；
+- 展示做得好的地方、遗漏问题、遗漏原因和下一步建议；
+- 展示 Clinical Reasoning Timeline；
+- 保留原有课程 RAG、真实模型问答、流式输出、对话记录和安全边界。
+
+## 当前实现边界
+
+病例训练和评分为前端确定性演示实现，目的是保证现场 Demo 稳定和评分可解释；它不代表临床能力评估，也没有接入真实患者数据。真实模型问答仍要求用户配置自己的 API Key。正式产品还需要服务端训练记录、账号权限、教师审核、内容版本、医学专家审校、脱敏、模型监控和部署治理。
+
+## 运行与验收
+
+```powershell
+cd projects/agent-platform/.worktrees/react-api-key-home/frontend
+npm run typecheck
+npm run build
+cd ..
+$env:PATH = "C:\Users\19174\.conda\envs\EduRAG;" + $env:PATH
+C:\Users\19174\.conda\envs\EduRAG\python.exe -m unittest discover -s tests -v
+npm run verify:ui
+```
+
+本次验收覆盖：病例训练入口、患者角色回复、结束提交、评分报告、Clinical Reasoning Timeline、离线陪练 Demo、历史对话、SSE 流式问答、页面滚动、移动端布局和 9 项后端安全测试。
+
+## 现场 Golden Path
+
+进入工作台 → 进入病例训练 → 默认胸痛 → 主动询问位置/性质/时间/诱因/放射/伴随症状/既往史 → 结束问诊并提交 → 展示评分 → 展示遗漏和原因 → 展示临床思维时间轴 → 说明正式版本接入教师审核与训练历史。

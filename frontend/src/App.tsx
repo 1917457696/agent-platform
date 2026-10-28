@@ -59,6 +59,34 @@ type Conversation = {
   messages: Message[];
 };
 
+type TrainingMessage = {
+  id: string;
+  role: "student" | "patient";
+  content: string;
+  topic?: string;
+};
+
+type TrainingReport = {
+  overall: number;
+  completeness: number;
+  coverage: number;
+  reasoning: number;
+  safety: number;
+  asked: string[];
+  missed: string[];
+};
+
+type TrainingCase = {
+  id: string;
+  title: string;
+  department: string;
+  difficulty: string;
+  duration: string;
+  opening: string;
+  keyQuestions: { label: string; keywords: string[] }[];
+  respond: (question: string) => { text: string; topic: string };
+};
+
 const defaultCredentials: Credentials = {
   llmKey: "",
   llmBaseUrl: "https://api.deepseek.com",
@@ -133,6 +161,76 @@ const starterPrompts = [
   "如何理解中医的辨证论治？",
   "四诊合参在医案学习中怎么用？",
   "《黄帝内经》的阴阳观如何入门？",
+];
+
+const trainingCases: TrainingCase[] = [
+  {
+    id: "chest-pain",
+    title: "胸痛 · 急性风险识别",
+    department: "心内科",
+    difficulty: "★★★",
+    duration: "8 分钟",
+    opening: "医生您好，我今天下午开始胸口有点闷痛，走快一点时更明显。",
+    keyQuestions: [
+      { label: "疼痛位置与性质", keywords: ["哪里", "位置", "性质", "闷", "压榨", "刺痛"] },
+      { label: "持续时间与诱因", keywords: ["多久", "多长", "什么时候", "活动", "休息", "诱因"] },
+      { label: "放射与伴随症状", keywords: ["放射", "肩", "手臂", "呼吸", "大汗", "恶心"] },
+      { label: "既往史与用药", keywords: ["既往", "高血压", "糖尿病", "心脏", "用药", "药物"] },
+      { label: "过敏与家族史", keywords: ["过敏", "家族", "父母", "遗传"] },
+    ],
+    respond: (question) => {
+      if (/[哪里位置性质闷压榨刺痛]/.test(question)) return { topic: "疼痛位置与性质", text: "主要在胸骨后偏左的位置，像被压着一样，不是针扎的刺痛。" };
+      if (/[多久多长什么时候活动休息诱因]/.test(question)) return { topic: "持续时间与诱因", text: "大概持续了二十分钟，快走或爬楼时更明显，停下来休息会缓解一些。" };
+      if (/[放射肩手臂呼吸大汗恶心]/.test(question)) return { topic: "放射与伴随症状", text: "有一点向左肩和左手臂放，刚才出过汗，但没有明显恶心。现在没有明显呼吸困难。" };
+      if (/[既往高血压糖尿病心脏用药药物]/.test(question)) return { topic: "既往史与用药", text: "有五年的高血压史，平时吃降压药，今天还没有吃其他药。" };
+      if (/[过敏家族父母遗传]/.test(question)) return { topic: "过敏与家族史", text: "没有明确药物过敏，父亲以前有冠心病。" };
+      return { topic: "低价值追问", text: "这个我暂时说不清楚。您还想了解哪些和这次胸闷有关的信息？" };
+    },
+  },
+  {
+    id: "cough",
+    title: "咳嗽 · 四诊信息采集",
+    department: "呼吸科",
+    difficulty: "★★",
+    duration: "6 分钟",
+    opening: "这两天换季以后我一直咳嗽，嗓子有点痒。",
+    keyQuestions: [
+      { label: "病程与变化", keywords: ["多久", "几天", "什么时候", "加重", "变化"] },
+      { label: "寒热与汗出", keywords: ["发热", "怕冷", "寒热", "出汗", "汗"] },
+      { label: "痰与呼吸", keywords: ["痰", "呼吸", "喘", "气促", "颜色"] },
+      { label: "饮食睡眠与二便", keywords: ["饮食", "睡眠", "大便", "小便"] },
+      { label: "过敏与用药", keywords: ["过敏", "用药", "药物"] },
+    ],
+    respond: (question) => {
+      if (/[多久几天什么时候加重变化]/.test(question)) return { topic: "病程与变化", text: "从前天晚上开始，今天白天比昨天频繁一些。" };
+      if (/[发热怕冷寒热出汗汗]/.test(question)) return { topic: "寒热与汗出", text: "没有量到发热，稍微有点怕风，没怎么出汗。" };
+      if (/[痰呼吸喘气促颜色]/.test(question)) return { topic: "痰与呼吸", text: "偶尔有少量白痰，目前没有喘，也没有明显气短。" };
+      if (/[饮食睡眠大便小便]/.test(question)) return { topic: "饮食睡眠与二便", text: "饮食和睡眠基本正常，大小便也没有明显变化。" };
+      if (/[过敏用药药物]/.test(question)) return { topic: "过敏与用药", text: "没有已知药物过敏，暂时没有自行吃药。" };
+      return { topic: "低价值追问", text: "嗯，这个暂时没有特别感觉。您还想问什么？" };
+    },
+  },
+  {
+    id: "fever",
+    title: "发热 · 风险分层",
+    department: "全科",
+    difficulty: "★★",
+    duration: "6 分钟",
+    opening: "我从昨晚开始发热，身上有点酸痛。",
+    keyQuestions: [
+      { label: "体温与时间线", keywords: ["体温", "多少度", "多久", "什么时候"] },
+      { label: "呼吸与意识", keywords: ["呼吸", "喘", "意识", "头晕"] },
+      { label: "寒战与出汗", keywords: ["寒战", "怕冷", "出汗", "汗"] },
+      { label: "用药与基础病", keywords: ["用药", "药物", "基础病", "高血压", "糖尿病"] },
+    ],
+    respond: (question) => {
+      if (/[体温多少度多久什么时候]/.test(question)) return { topic: "体温与时间线", text: "昨晚九点左右开始，最高量到 38.6℃，今天早上还是 38℃ 左右。" };
+      if (/[呼吸喘意识头晕]/.test(question)) return { topic: "呼吸与意识", text: "没有呼吸困难，意识清楚，有一点头晕。" };
+      if (/[寒战怕冷出汗汗]/.test(question)) return { topic: "寒战与出汗", text: "发热前有一阵怕冷，现在有一点出汗。" };
+      if (/[用药药物基础病高血压糖尿病]/.test(question)) return { topic: "用药与基础病", text: "没有长期用药，也没有听说过明确的基础病。" };
+      return { topic: "低价值追问", text: "这个我不太确定。您还需要了解哪些信息？" };
+    },
+  },
 ];
 
 const practiceDemo = {
@@ -276,6 +374,12 @@ function App() {
   const [isSending, setIsSending] = useState(false);
   const [notice, setNotice] = useState("");
   const [demoStep, setDemoStep] = useState<"idle" | "inquiry" | "feedback" | "safety">("idle");
+  const [trainingOpen, setTrainingOpen] = useState(false);
+  const [trainingCaseId, setTrainingCaseId] = useState("chest-pain");
+  const [trainingDraft, setTrainingDraft] = useState("");
+  const [trainingMessages, setTrainingMessages] = useState<TrainingMessage[]>([]);
+  const [trainingAsked, setTrainingAsked] = useState<string[]>([]);
+  const [trainingReport, setTrainingReport] = useState<TrainingReport | null>(null);
   const pointerStart = useRef<number | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
@@ -513,6 +617,78 @@ function App() {
     setMessages(conversation.messages.length ? conversation.messages : [welcomeMessage()]);
     setQuestion("");
     setNotice("");
+  };
+
+  const startTraining = (caseId: string) => {
+    const selected = trainingCases.find((item) => item.id === caseId) ?? trainingCases[0];
+    setTrainingCaseId(selected.id);
+    setTrainingOpen(true);
+    setTrainingDraft("");
+    setTrainingAsked([]);
+    setTrainingReport(null);
+    setTrainingMessages([{
+      id: crypto.randomUUID(),
+      role: "patient",
+      content: selected.opening,
+      topic: "主诉",
+    }]);
+    setDemoStep("inquiry");
+    setNotice("病例训练已开始：你扮演医生，AI 扮演患者。请主动问诊。");
+    window.setTimeout(() => setNotice(""), 2600);
+  };
+
+  const submitTrainingQuestion = (event: FormEvent) => {
+    event.preventDefault();
+    const content = trainingDraft.trim();
+    if (!content || trainingReport) return;
+    const selected = trainingCases.find((item) => item.id === trainingCaseId) ?? trainingCases[0];
+    const response = selected.respond(content);
+    const matched = selected.keyQuestions
+      .filter((item) => item.keywords.some((keyword) => content.includes(keyword)))
+      .map((item) => item.label);
+    setTrainingAsked((current) => Array.from(new Set([...current, ...matched])));
+    setTrainingMessages((current) => [
+      ...current,
+      { id: crypto.randomUUID(), role: "student", content },
+      { id: crypto.randomUUID(), role: "patient", content: response.text, topic: response.topic },
+    ]);
+    setTrainingDraft("");
+  };
+
+  const finishTraining = () => {
+    if (!trainingMessages.length || trainingReport) return;
+    const selected = trainingCases.find((item) => item.id === trainingCaseId) ?? trainingCases[0];
+    const total = selected.keyQuestions.length;
+    const completeness = Math.min(98, 45 + Math.round((trainingAsked.length / total) * 53));
+    const redFlagAsked = trainingAsked.includes("放射与伴随症状") || trainingAsked.includes("呼吸与意识");
+    const coverage = Math.min(96, 42 + Math.round((trainingAsked.length / total) * 54));
+    const reasoning = Math.min(94, 58 + trainingAsked.length * 6);
+    const safety = redFlagAsked ? 91 : 52;
+    const overall = Math.round(completeness * 0.3 + coverage * 0.3 + reasoning * 0.2 + safety * 0.2);
+    setTrainingReport({
+      overall,
+      completeness,
+      coverage,
+      reasoning,
+      safety,
+      asked: trainingAsked,
+      missed: selected.keyQuestions.map((item) => item.label).filter((label) => !trainingAsked.includes(label)),
+    });
+    setDemoStep("feedback");
+    setNotice("问诊已提交：系统根据规则覆盖和学习路径生成训练报告。");
+    window.setTimeout(() => setNotice(""), 2600);
+  };
+
+  const closeTraining = () => {
+    if (!trainingReport && trainingMessages.length > 1) {
+      setNotice("可以先点击“结束问诊并提交”，保存本次训练反馈。");
+      window.setTimeout(() => setNotice(""), 2200);
+      return;
+    }
+    setTrainingOpen(false);
+    setTrainingMessages([]);
+    setTrainingReport(null);
+    setDemoStep("idle");
   };
 
   const runPracticeDemo = async () => {
@@ -791,6 +967,9 @@ function App() {
                 <button type="button" className="demo-button" onClick={() => void runPracticeDemo()} disabled={isSending}>
                   <Sparkles size={14} /> {isSending ? "演示进行中…" : "开始现场 Demo"}
                 </button>
+                <button type="button" className="training-launch-button" onClick={() => startTraining("chest-pain")} disabled={isSending}>
+                  <Stethoscope size={14} /> 进入病例训练
+                </button>
               </div>
               <div className="history-heading">
                 <span>对话记录</span>
@@ -837,9 +1016,44 @@ function App() {
             <div className="chat-panel">
               <div className="chat-header">
                 <div><span className="live-dot" /><strong>岐序 Agent</strong><small>{demoStep === "idle" ? "Supervisor 在线" : `陪练阶段 · ${demoStep === "inquiry" ? "补齐信息" : demoStep === "feedback" ? "学习反馈" : "教师审核"}`}</small></div>
-                <button type="button" onClick={openSettings} aria-label="打开设置"><Settings2 size={18} /></button>
+                <div className="chat-header-actions">
+                  {trainingOpen && <button type="button" onClick={closeTraining} aria-label="退出病例训练">退出训练</button>}
+                  <button type="button" onClick={openSettings} aria-label="打开设置"><Settings2 size={18} /></button>
+                </div>
               </div>
 
+              {trainingOpen ? (
+                <section className="training-workspace" aria-label="病例训练">
+                  {!trainingReport ? (
+                    <>
+                      <div className="training-case-picker">
+                        <div><span className="section-number">CLINICAL TRAINING</span><h3>你是医生，AI 扮演患者</h3><p>不要急着猜答案，先通过问诊逐步获取信息。</p></div>
+                        <label>选择病例<select value={trainingCaseId} onChange={(event) => startTraining(event.target.value)} disabled={trainingMessages.length > 1}><option value="chest-pain">胸痛 · 急性风险识别</option><option value="cough">咳嗽 · 四诊信息采集</option><option value="fever">发热 · 风险分层</option></select></label>
+                      </div>
+                      <div className="training-meta-row">
+                        <span>科室：{(trainingCases.find((item) => item.id === trainingCaseId) ?? trainingCases[0]).department}</span><span>难度：{(trainingCases.find((item) => item.id === trainingCaseId) ?? trainingCases[0]).difficulty}</span><span>预计：{(trainingCases.find((item) => item.id === trainingCaseId) ?? trainingCases[0]).duration}</span>
+                      </div>
+                      <div className="training-dialogue" aria-live="polite">
+                        {trainingMessages.map((message) => (
+                          <article className={`training-message ${message.role}`} key={message.id}><span>{message.role === "patient" ? "患者" : "你"}</span><p>{message.content}</p>{message.topic && <small>{message.topic}</small>}</article>
+                        ))}
+                      </div>
+                      <form className="training-composer" onSubmit={submitTrainingQuestion}>
+                        <textarea id="training-question" value={trainingDraft} onChange={(event) => setTrainingDraft(event.target.value)} placeholder="像医生一样主动提问：疼痛在哪里？持续多久？有没有放射或大汗？" rows={2} />
+                        <button type="submit" disabled={!trainingDraft.trim()}>追问患者 <Send size={15} /></button>
+                      </form>
+                      <div className="training-footer"><span>已覆盖 {trainingAsked.length} / {(trainingCases.find((item) => item.id === trainingCaseId) ?? trainingCases[0]).keyQuestions.length} 个核心维度</span><button type="button" onClick={finishTraining} disabled={trainingMessages.length < 2}>结束问诊并提交 <Check size={15} /></button></div>
+                    </>
+                  ) : (
+                    <div className="training-report">
+                      <div className="report-heading"><div><span className="section-number">CLINICAL TRAINING REPORT</span><h3>这次问诊，你学到了什么？</h3><p>评分由结构化覆盖规则生成，反馈用于训练，不替代临床判断。</p></div><div className="overall-score"><strong>{trainingReport.overall}</strong><span>综合评分</span></div></div>
+                      <div className="score-grid">{[["问诊完整度", trainingReport.completeness], ["关键症状覆盖", trainingReport.coverage], ["临床思维", trainingReport.reasoning], ["风险意识", trainingReport.safety]].map(([label, score]) => <div className="score-card" key={String(label)}><span>{String(label)}</span><strong>{String(score)}</strong><i><b style={{ width: `${Number(score)}%` }} /></i></div>)}</div>
+                      <div className="report-columns"><div><h4>你做得好的地方</h4><p>你已经覆盖了 {trainingReport.asked.length} 个核心问诊维度，并保留了连续追问的上下文。下一次可以更早确认高风险伴随症状。</p><h4>为什么重要</h4><p>临床训练不只看问了多少，而是看能否优先获取会改变风险分层和下一步决策的信息。</p></div><div><h4>你遗漏的问题</h4>{trainingReport.missed.length ? <ul>{trainingReport.missed.map((item) => <li key={item}><span>⚠</span>{item}</li>)}</ul> : <p className="report-good">✓ 核心维度覆盖完整</p>}<h4>下一步建议</h4><p>复习“胸痛危险信号与问诊顺序”，再用同一病例尝试更短、更有优先级的提问路径。</p></div></div>
+                      <div className="reasoning-timeline"><h4>Clinical Reasoning Timeline</h4><div>{(trainingCases.find((item) => item.id === trainingCaseId) ?? trainingCases[0]).keyQuestions.map((item, index) => <span className={trainingReport.asked.includes(item.label) ? "timeline-step is-done" : "timeline-step is-missed"} key={item.label}><b>{String(index + 1).padStart(2, "0")}</b><i>{trainingReport.asked.includes(item.label) ? "✓" : "⚠"}</i><em>{item.label}</em></span>)}</div></div>
+                    </div>
+                  )}
+                </section>
+              ) : <>
               <div className="message-list" aria-live="polite" ref={messageListRef}>
                 {messages.map((message) => (
                   <article className={`message ${message.role}`} key={message.id}>
@@ -898,6 +1112,7 @@ function App() {
                   <button type="submit" disabled={!question.trim() || isSending} aria-label="发送问题"><Send size={18} /></button>
                 </div>
               </form>
+              </>}
             </div>
           </div>
         </section>
