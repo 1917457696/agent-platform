@@ -294,15 +294,27 @@ class AgentPlatform:
         self._history = []
         self._trace = []
 
+    @staticmethod
+    def _trim_history(messages: list, max_turns: int) -> list:
+        """保留最近若干个用户轮次，并从 HumanMessage 边界开始裁剪。"""
+        human_indexes = [
+            index for index, message in enumerate(messages)
+            if isinstance(message, HumanMessage)
+        ]
+        if len(human_indexes) <= max_turns:
+            return messages
+        return messages[human_indexes[-max_turns] :]
+
     def ask(self, question: str) -> dict:
         started = perf_counter()
+        self._history = self._trim_history(self._history, self.cfg.max_history_turns)
         self._history.append(HumanMessage(content=question))
         result = self._graph.invoke(
             {"messages": self._history, "steps": 0, "route_trace": [], "emergency": False},
             {"recursion_limit": self.cfg.recursion_limit},
         )
         answer = result["messages"][-1].content
-        self._history = result["messages"]
+        self._history = self._trim_history(result["messages"], self.cfg.max_history_turns)
         self._trace = result["route_trace"]
         usage = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
         for message in result["messages"]:

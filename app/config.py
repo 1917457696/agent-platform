@@ -90,6 +90,8 @@ class Config:
         # Agent 平台
         self.max_steps = int(_get_str("MAX_STEPS", "6"))
         self.recursion_limit = int(_get_str("RECURSION_LIMIT", "40"))
+        # 短期会话记忆：按用户轮次裁剪，避免长会话无限增长。
+        self.max_history_turns = max(1, int(_get_str("MAX_HISTORY_TURNS", "8")))
 
     @property
     def has_llm_credentials(self) -> bool:
@@ -110,6 +112,7 @@ class Config:
                 self.embedding_base_url,
                 self.embedding_model,
                 str(self.tcm_focus),
+                str(self.max_history_turns),
                 hashlib.sha256(self.embedding_api_key.encode("utf-8")).hexdigest(),
             ]
         )

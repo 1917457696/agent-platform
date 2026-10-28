@@ -5,10 +5,11 @@ from unittest.mock import patch
 
 from fastapi import HTTPException
 from pydantic import ValidationError
+from langchain_core.messages import AIMessage, HumanMessage
 
 from app.cache import Cache
 from app.config import Config
-from app.graph import _build_retrieval_tool
+from app.graph import AgentPlatform, _build_retrieval_tool
 from app import server
 from app.service import ChatService
 
@@ -71,6 +72,14 @@ class ConfigSecurityTests(unittest.TestCase):
         self.assertIn("trace_id", result["observability"])
         self.assertEqual(result["observability"]["nodes"][0]["label"], "安全护栏")
         self.assertTrue(result["observability"]["token_usage"]["estimated"])
+
+    def test_short_term_history_keeps_recent_turns_only(self):
+        messages = []
+        for index in range(5):
+            messages.extend([HumanMessage(content=f"问题 {index}"), AIMessage(content=f"回答 {index}")])
+        trimmed = AgentPlatform._trim_history(messages, 2)
+        self.assertEqual([message.content for message in trimmed if isinstance(message, HumanMessage)], ["问题 3", "问题 4"])
+        self.assertEqual(trimmed[0].content, "问题 3")
 
 
 class ServerSecurityTests(unittest.TestCase):

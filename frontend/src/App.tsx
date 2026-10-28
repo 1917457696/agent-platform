@@ -1327,12 +1327,13 @@ function App() {
               <details className="advanced-settings">
                 <summary><Database size={17} /> 可选：启用向量检索 <ChevronRight size={16} /></summary>
                 <div className="advanced-body">
-                  <p>不填写向量检索配置时，系统会自动使用本地关键词检索（BM25），不影响现场演示。</p>
-                  <label><span>Embedding API Key</span><input type="password" value={draftCredentials.embeddingKey} onChange={(event) => setDraftCredentials({ ...draftCredentials, embeddingKey: event.target.value })} placeholder="可留空" autoComplete="off" /></label>
+                  <p>填写后，服务端会尝试使用“向量 + 关键词”的混合检索；如果没有向量索引，会自动降级为本地关键词检索。</p>
+                  <label><span>Embedding 服务 Key <em>可选，启用混合检索</em></span><input type="password" value={draftCredentials.embeddingKey} onChange={(event) => setDraftCredentials({ ...draftCredentials, embeddingKey: event.target.value })} placeholder="可留空" autoComplete="off" /></label>
                   <div className="field-row">
-                    <label><span>Embedding 地址</span><input type="url" value={draftCredentials.embeddingBaseUrl} onChange={(event) => setDraftCredentials({ ...draftCredentials, embeddingBaseUrl: event.target.value })} /></label>
-                    <label><span>Embedding 模型</span><input value={draftCredentials.embeddingModel} onChange={(event) => setDraftCredentials({ ...draftCredentials, embeddingModel: event.target.value })} /></label>
+                    <label><span>Embedding 服务地址</span><input type="url" value={draftCredentials.embeddingBaseUrl} onChange={(event) => setDraftCredentials({ ...draftCredentials, embeddingBaseUrl: event.target.value })} /></label>
+                    <label><span>Embedding 模型名称</span><input value={draftCredentials.embeddingModel} onChange={(event) => setDraftCredentials({ ...draftCredentials, embeddingModel: event.target.value })} /></label>
                   </div>
+                  <p className="embedding-hint">默认示例：通义 Embedding 兼容地址 + `text-embedding-v3`。正式启用前，需要使用同一 Key 构建 `data/index` 向量索引。</p>
                 </div>
               </details>
 
