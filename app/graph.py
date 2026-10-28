@@ -16,6 +16,7 @@
 3. 工具异常降级：工具调用 try/except，失败时基于已知信息作答，不崩溃；
 4. 安全护栏：急症规则前置，医疗场景安全优先。
 """
+from functools import lru_cache
 from typing import Annotated, Optional, TypedDict
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
@@ -26,8 +27,14 @@ from langgraph.graph.message import add_messages
 
 from .config import Config
 from .embeddings import build_embeddings
-from .ingest import load_index
-from .tools import build_rag_search_tool, calculator, detect_emergency, get_today
+from .ingest import load_documents, load_index, split_documents
+from .tools import (
+    build_lexical_search_tool,
+    build_rag_search_tool,
+    calculator,
+    detect_emergency,
+    get_today,
+)
 
 EMERGENCY_ANSWER = (
     "⚠️ 检测到您描述的症状可能属于**急症**（持续胸痛/呼吸困难/大出血/意识不清等），"
@@ -126,14 +133,37 @@ def handoff_to_utility(query: str = "") -> str:
     return "已分派给通用工具助手。"
 
 
+@lru_cache(maxsize=4)
+def _load_corpus(data_dir: str, chunk_size: int, chunk_overlap: int):
+    docs = load_documents(data_dir)
+    return split_documents(docs, chunk_size, chunk_overlap)
+
+
+def _build_retrieval_tool(cfg: Config):
+    """优先向量+BM25；缺少 Key/索引时降级到纯 BM25。"""
+    corpus = _load_corpus(cfg.data_dir, cfg.chunk_size, cfg.chunk_overlap)
+    if not corpus:
+        raise RuntimeError("知识库为空，请先在 data 目录放入 txt/md/pdf 资料")
+
+    if cfg.has_embedding_credentials:
+        try:
+            db = load_index(build_embeddings(cfg), cfg.vector_store_dir)
+            if db is not None:
+                indexed_corpus = [d for d in db.docstore._dict.values()]  # noqa: SLF001
+                return build_rag_search_tool(db, indexed_corpus, top_k=cfg.top_k)
+        except Exception as exc:
+            print(f"[warn] 向量检索初始化失败（{type(exc).__name__}），降级为 BM25")
+
+    print("[info] 使用本地 BM25 检索；配置 Embedding Key 并构建索引后可启用混合检索")
+    return build_lexical_search_tool(corpus, top_k=cfg.top_k)
+
+
 def build_agent_platform(cfg: Optional[Config] = None):
     cfg = cfg or Config()
 
-    db = load_index(build_embeddings(cfg), cfg.vector_store_dir)
-    if db is None:
-        raise RuntimeError("索引不存在，请先运行 scripts/build_index.py --ingest data")
-    corpus = [d for d in db.docstore._dict.values()]  # noqa: SLF001
-    rag_search = build_rag_search_tool(db, corpus, top_k=cfg.top_k)
+    if not cfg.has_llm_credentials:
+        raise ValueError("未配置模型 API Key")
+    rag_search = _build_retrieval_tool(cfg)
 
     llm = ChatOpenAI(
         model=cfg.llm_model,

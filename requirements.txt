@@ -12,5 +12,6 @@ fastapi
 uvicorn
 pydantic
 python-dotenv
+rank-bm25
 # MCP（可选，暴露平台工具为 MCP Server 时安装）
 # mcp

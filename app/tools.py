@@ -11,7 +11,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_core.tools import tool
 
-from .retriever import HybridRetriever, VectorRetriever
+from .retriever import HybridRetriever, LexicalRetriever, VectorRetriever
 
 
 # ---------------- 急症护栏规则（医疗安全） ----------------
@@ -42,6 +42,24 @@ def build_rag_search_tool(db: FAISS, corpus: List[Document], top_k: int = 5):
         if not docs:
             return "未检索到相关资料。"
         return "\n\n".join(f"[{i + 1}] {d.page_content}" for i, d in enumerate(docs))
+
+    return rag_search
+
+
+def build_lexical_search_tool(corpus: List[Document], top_k: int = 5):
+    """无向量凭据或索引时使用 BM25；仍保留来源与拒绝编造约束。"""
+    lexical = LexicalRetriever(corpus, top_k=top_k)
+
+    @tool
+    def rag_search(query: str) -> str:
+        """使用本地词法索引检索医疗健康知识库，返回带来源编号的相关条目。"""
+        docs = lexical.retrieve(query)
+        if not docs:
+            return "未检索到相关资料。"
+        return "\n\n".join(
+            f"[{i + 1}] {d.page_content}\n来源：{d.metadata.get('source', '本地知识库')}"
+            for i, d in enumerate(docs)
+        )
 
     return rag_search
 

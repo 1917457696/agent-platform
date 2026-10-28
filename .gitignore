@@ -12,6 +12,10 @@ __pycache__/
 .idea/
 .vscode/
 .DS_Store
+node_modules/
+frontend/dist/
+coverage/
+artifacts/
 
 # 本地隔离工作树
 .worktrees/

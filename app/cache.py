@@ -83,8 +83,8 @@ class Cache:
         self._mem_set(key, value, ttl)
 
     # ---- FAQ 答案的便捷方法 ----
-    def get_answer(self, query: str) -> Optional[str]:
-        data = self.get(f"faq:answer:{query}")
+    def get_answer(self, query: str, namespace: str = "default") -> Optional[str]:
+        data = self.get(f"faq:answer:{namespace}:{query}")
         if data:
             try:
                 return json.loads(data)["answer"]
@@ -92,8 +92,14 @@ class Cache:
                 return None
         return None
 
-    def set_answer(self, query: str, answer: str, channel: str = "faq") -> None:
+    def set_answer(
+        self,
+        query: str,
+        answer: str,
+        channel: str = "faq",
+        namespace: str = "default",
+    ) -> None:
         self.set(
-            f"faq:answer:{query}",
+            f"faq:answer:{namespace}:{query}",
             json.dumps({"answer": answer, "channel": channel}, ensure_ascii=False),
         )

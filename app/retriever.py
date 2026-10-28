@@ -65,6 +65,18 @@ class VectorRetriever:
         return self._db.similarity_search(normalize_query(query), k=self._top_k)
 
 
+class LexicalRetriever:
+    """纯 BM25 检索：未提供 Embedding Key 时的确定性降级路径。"""
+
+    def __init__(self, corpus: List[Document], top_k: int = 5) -> None:
+        self._bm25 = BM25Retriever.from_documents(
+            corpus, k=top_k, preprocess_func=_cn_bigram_tokenizer
+        )
+
+    def retrieve(self, query: str) -> List[Document]:
+        return self._bm25.invoke(normalize_query(query))
+
+
 class HybridRetriever:
     """混合检索：向量 + BM25 → RRF 融合。"""
 

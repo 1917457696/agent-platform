@@ -1,48 +1,79 @@
-"""三通道编排：急症护栏 → Redis 缓存 → FAQ 相似度 → Agent 兜底。
+"""三通道编排与按凭据隔离的运行时管理。
 
-请求链路（从便宜到昂贵，企业"分层拦截"思想的落地）：
-  ① guard   急症规则检测（零成本）→ 命中直接提示就医
-  ② cache   Redis 缓存命中（秒回，零 LLM 成本）→ 未命中继续
-  ③ faq     FAQ 语义相似度命中（零 LLM 成本，写缓存）→ 未命中继续
-  ④ agent   主控路由 + 专家子图兜底（带来源/路由轨迹）
-
-收益：高频问题（缓存+FAQ）零 LLM 成本毫秒级返回，只有复杂问题消耗 LLM——
-对应企业里"FAQ 命中率 60-80% = 60-80% 请求不打 LLM"的成本控制思想。
+浏览器提供的 API Key 只保存在对应运行时对象的进程内存中；不会写入文件、
+日志、缓存键或响应体。运行配置使用不可逆指纹隔离，避免不同使用者共享
+Agent 历史或 FAQ 缓存。
 """
+from collections import OrderedDict
 from typing import Optional
 
 from .cache import Cache
+from .config import Config
 from .faq import FaqMatcher
 from .graph import EMERGENCY_ANSWER, AgentPlatform
 from .tools import detect_emergency
 
 
+class _RuntimeState:
+    def __init__(self, cfg: Config) -> None:
+        self.cfg = cfg
+        self.faq: Optional[FaqMatcher] = None
+        if cfg.has_embedding_credentials:
+            try:
+                self.faq = FaqMatcher(cfg)
+            except Exception as exc:
+                print(f"[warn] FAQ 初始化失败（{type(exc).__name__}），FAQ 通道降级")
+        self.sessions: dict[str, AgentPlatform] = {}
+
+    def get_agent(self, session_id: str) -> AgentPlatform:
+        if session_id not in self.sessions:
+            self.sessions[session_id] = AgentPlatform(self.cfg)
+        return self.sessions[session_id]
+
+    def reset(self, session_id: str) -> None:
+        session = self.sessions.pop(session_id, None)
+        if session is not None:
+            session.reset()
+
+
 class ChatService:
-    def __init__(self) -> None:
+    def __init__(self, max_runtimes: int = 8) -> None:
         self._cache = Cache()
-        self._faq = FaqMatcher()
-        self._sessions: dict = {}
+        self._max_runtimes = max_runtimes
+        self._runtimes: "OrderedDict[str, _RuntimeState]" = OrderedDict()
 
     @property
     def cache_backend(self) -> str:
         return self._cache.backend
 
-    def _get_agent(self, session_id: str) -> AgentPlatform:
-        if session_id not in self._sessions:
-            self._sessions[session_id] = AgentPlatform()
-        return self._sessions[session_id]
+    @property
+    def runtime_count(self) -> int:
+        return len(self._runtimes)
+
+    @property
+    def session_count(self) -> int:
+        return sum(len(runtime.sessions) for runtime in self._runtimes.values())
+
+    def _get_runtime(self, cfg: Config) -> tuple[str, _RuntimeState]:
+        key = cfg.runtime_fingerprint()
+        runtime = self._runtimes.pop(key, None)
+        if runtime is None:
+            runtime = _RuntimeState(cfg)
+        self._runtimes[key] = runtime
+        while len(self._runtimes) > self._max_runtimes:
+            self._runtimes.popitem(last=False)
+        return key, runtime
 
     def reset(self, session_id: str) -> None:
-        session = self._sessions.pop(session_id, None)
-        if session is not None:
-            session.reset()
+        for runtime in self._runtimes.values():
+            runtime.reset(session_id)
 
-    def chat(self, question: str, session_id: str = "default") -> dict:
+    def chat(self, question: str, session_id: str, cfg: Config) -> dict:
         q = question.strip()
         if not q:
             return {"answer": "请输入问题。", "channel": "empty"}
 
-        # ① 急症护栏（规则前置，任何通道命中急症都直接提示就医）
+        # 急症护栏仍位于所有模型与检索通道之前。
         hit = detect_emergency(q)
         if hit:
             return {
@@ -51,24 +82,29 @@ class ChatService:
                 "emergency": hit,
             }
 
-        # ② Redis 缓存（完全相同的问法秒回）
-        cached = self._cache.get_answer(q)
+        runtime_key, runtime = self._get_runtime(cfg)
+
+        cached = self._cache.get_answer(q, namespace=runtime_key)
         if cached:
             return {"answer": cached, "channel": "cache"}
 
-        # ③ FAQ 语义相似度（改写问法也能命中，零 LLM 成本）
-        faq = self._faq.match(q)
-        if faq:
-            self._cache.set_answer(q, faq["answer"], channel="faq")
-            return {
-                "answer": faq["answer"],
-                "channel": "faq",
-                "faq_question": faq["question"],
-                "score": faq["score"],
-            }
+        if runtime.faq is not None:
+            faq = runtime.faq.match(q)
+            if faq:
+                self._cache.set_answer(
+                    q,
+                    faq["answer"],
+                    channel="faq",
+                    namespace=runtime_key,
+                )
+                return {
+                    "answer": faq["answer"],
+                    "channel": "faq",
+                    "faq_question": faq["question"],
+                    "score": faq["score"],
+                }
 
-        # ④ Agent 兜底（主控路由 + 专家子图）
-        result = self._get_agent(session_id).ask(q)
+        result = runtime.get_agent(session_id).ask(q)
         return {
             "answer": result["answer"],
             "channel": "agent",

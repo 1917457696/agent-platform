@@ -54,6 +54,8 @@ class _OpenAICompatibleEmbeddings(Embeddings):
 def build_embeddings(cfg: Config) -> Embeddings:
     if cfg.embedding_provider == "local":
         return _LocalSentenceEmbeddings(cfg.embedding_model)
+    if not cfg.embedding_api_key:
+        raise ValueError("未配置 Embedding API Key")
     return _OpenAICompatibleEmbeddings(
         model=cfg.embedding_model,
         base_url=cfg.embedding_base_url,
