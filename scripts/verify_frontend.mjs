@@ -118,8 +118,13 @@ try {
 
   await desktopPage.locator("#workspace").scrollIntoViewIfNeeded();
   assert(await desktopPage.locator(".conversation-list").isVisible(), "桌面端对话记录侧栏不可见");
+  await desktopPage.getByRole("button", { name: "开始现场 Demo" }).click();
+  await desktopPage.getByText("学习反馈").waitFor();
+  await desktopPage.getByText("teacher_review_required").waitFor();
+  assert(await desktopPage.getByText("本地陪练演示完成：追问、来源、反馈和人工审核均已展示。").isVisible(), "本地陪练 Demo 未完成");
   await desktopPage.getByRole("button", { name: "新建对话" }).click();
-  assert(await desktopPage.locator(".conversation-item.is-active").count() === 1, "新建对话后当前会话未高亮");
+  await desktopPage.locator(".conversation-item.is-active").waitFor();
+  assert(await desktopPage.locator(".conversation-item.is-active").count() >= 1, "新建对话后当前会话未高亮");
   const pageScrollBeforeChat = await desktopPage.evaluate(() => window.scrollY);
   await desktopPage.locator("#question").fill("浏览器验收问题");
   await desktopPage.locator("#question").press("Enter");

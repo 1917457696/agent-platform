@@ -135,6 +135,15 @@ const starterPrompts = [
   "《黄帝内经》的阴阳观如何入门？",
 ];
 
+const practiceDemo = {
+  casePrompt: "我在换季后咳嗽两天，先从这个医案开始陪练。",
+  followUp: "补充信息：没有明显发热，咽部发痒，偶有白痰，睡眠和饮食基本正常；舌象和脉象暂时无法在线可靠获得。",
+  safetyPrompt: "那你直接告诉我应该用什么方、多少剂量？",
+  inquiry: "这是一个合成医案，我们先不急着下结论。为了训练辨证思路，我会先补齐病程、寒热、汗出、痰、饮食睡眠等信息。当前还缺少舌象、脉象等不能仅靠文字可靠获得的四诊资料。",
+  feedback: "基于《四诊合参与辨证论治》课程资料：\n\n学习反馈\n1. 做得好的地方：你先提供了病程和主要症状，具备继续分析的基础。\n2. 需要补齐：咽痒、白痰只能作为讨论线索，不能单独定为某个证；舌象、脉象和整体状态仍需教师结合。\n3. 下一步练习：请分别说明“症状信息”“四诊依据”“仍需核实的信息”，再比较两种可能的病机解释。\n\n推荐复习：四诊合参 → 辨证论治的证据链 → 外感咳嗽医案。\n\n来源：中医教培演示资料 · 四诊合参、辨证论治与合成医案章节。",
+  safety: "这一步我不能直接给出个人处方或剂量。课程 AI 助教可以解释相关治则、整理老师医案并生成练习，但具体方药需要由教师或执业中医师结合完整四诊信息审核。\n\n已转人工审核：teacher_review_required\n教学边界：不把合成医案或单个症状直接迁移到个人诊疗。",
+};
+
 const sessionKey = "qixu.credentials.v1";
 const chatSessionKey = "qixu.chat-session.v1";
 const conversationsKey = "qixu.conversations.v1";
@@ -266,6 +275,7 @@ function App() {
   });
   const [isSending, setIsSending] = useState(false);
   const [notice, setNotice] = useState("");
+  const [demoStep, setDemoStep] = useState<"idle" | "inquiry" | "feedback" | "safety">("idle");
   const pointerStart = useRef<number | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
@@ -505,6 +515,68 @@ function App() {
     setNotice("");
   };
 
+  const runPracticeDemo = async () => {
+    if (isSending) return;
+    const nextId = crypto.randomUUID();
+    sessionStorage.setItem(chatSessionKey, nextId);
+    setActiveSessionId(nextId);
+    setMessages([welcomeMessage()]);
+    setQuestion("");
+    setIsSending(true);
+    setDemoStep("inquiry");
+    setNotice("本地演示模式：正在模拟学员与课程助教的陪练流程…");
+    const wait = (duration: number) => new Promise((resolve) => window.setTimeout(resolve, duration));
+
+    await wait(420);
+    setMessages((current) => [
+      ...current,
+      { id: crypto.randomUUID(), role: "user", content: practiceDemo.casePrompt },
+    ]);
+    await wait(620);
+    setMessages((current) => [
+      ...current,
+      { id: crypto.randomUUID(), role: "assistant", content: practiceDemo.inquiry, channel: "医案陪练 · 追问" },
+    ]);
+    await wait(520);
+    setMessages((current) => [
+      ...current,
+      { id: crypto.randomUUID(), role: "user", content: practiceDemo.followUp },
+    ]);
+    setDemoStep("feedback");
+    await wait(700);
+    setMessages((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: practiceDemo.feedback,
+        channel: "课程陪练 · 来源可核",
+        trace: ["缺槽追问", "TCM RAG", "学习反馈"],
+      },
+    ]);
+    setDemoStep("safety");
+    await wait(500);
+    setMessages((current) => [
+      ...current,
+      { id: crypto.randomUUID(), role: "user", content: practiceDemo.safetyPrompt },
+    ]);
+    await wait(620);
+    setMessages((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: practiceDemo.safety,
+        channel: "安全闸 · 教师审核",
+        trace: ["风险识别", "处方越界拦截", "teacher review"],
+      },
+    ]);
+    setDemoStep("safety");
+    setIsSending(false);
+    setNotice("本地陪练演示完成：追问、来源、反馈和人工审核均已展示。");
+    window.setTimeout(() => setNotice(""), 3200);
+  };
+
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -712,6 +784,14 @@ function App() {
           <div className="console" data-reveal>
             <aside className="console-sidebar">
               <div className="console-brand"><Activity size={18} /><span>协理控制台</span></div>
+              <div className="demo-panel">
+                <div className="demo-panel-topline"><span>LIVE DEMO</span><span className="demo-dot" /></div>
+                <strong>中医课程陪练</strong>
+                <p>无需 API Key，先跑通一条现场演示链路。</p>
+                <button type="button" className="demo-button" onClick={() => void runPracticeDemo()} disabled={isSending}>
+                  <Sparkles size={14} /> {isSending ? "演示进行中…" : "开始现场 Demo"}
+                </button>
+              </div>
               <div className="history-heading">
                 <span>对话记录</span>
                 <small>当前标签页</small>
@@ -756,7 +836,7 @@ function App() {
 
             <div className="chat-panel">
               <div className="chat-header">
-                <div><span className="live-dot" /><strong>岐序 Agent</strong><small>Supervisor 在线</small></div>
+                <div><span className="live-dot" /><strong>岐序 Agent</strong><small>{demoStep === "idle" ? "Supervisor 在线" : `陪练阶段 · ${demoStep === "inquiry" ? "补齐信息" : demoStep === "feedback" ? "学习反馈" : "教师审核"}`}</small></div>
                 <button type="button" onClick={openSettings} aria-label="打开设置"><Settings2 size={18} /></button>
               </div>
 
