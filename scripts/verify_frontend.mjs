@@ -46,20 +46,25 @@ try {
   desktopPage.on("pageerror", (error) => results.pageErrors.push(error.message));
 
   let capturedRequest = null;
-  await desktopPage.route("**/api/chat", async (route) => {
+  await desktopPage.route("**/api/chat/stream", async (route) => {
     const request = route.request();
     capturedRequest = {
       keyInHeader: request.headers()["x-llm-api-key"] === fakeKey,
       keyInBody: (request.postData() || "").includes(fakeKey),
+      streamEventCount: 2,
     };
     await route.fulfill({
       status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        answer: "这是浏览器验收返回的模拟回答。",
-        channel: "agent",
-        route_trace: ["guard(通过)", "supervisor", "→ 医疗知识子图"],
-      }),
+      contentType: "text/event-stream",
+      headers: { "Cache-Control": "no-cache" },
+      body: [
+        'data: {"type":"status","text":"正在生成"}',
+        'data: {"type":"delta","text":"这是浏览器验收"}',
+        'data: {"type":"delta","text":"返回的模拟回答。"}',
+        'data: {"type":"meta","channel":"agent","route_trace":["guard(通过)","supervisor","→ 医疗知识子图"]}',
+        'data: {"type":"done"}',
+        "",
+      ].join("\n\n"),
     });
   });
 
@@ -124,6 +129,7 @@ try {
   );
   assert(capturedRequest?.keyInHeader, "API Key 未通过专用请求头发送");
   assert(!capturedRequest?.keyInBody, "API Key 被写入请求体");
+  assert(capturedRequest?.streamEventCount === 2, "SSE 没有按多个片段发送回答");
 
   await desktopPage.locator("#capabilities").scrollIntoViewIfNeeded();
   await desktopPage.waitForTimeout(450);
@@ -150,6 +156,7 @@ try {
     keyStoredInSessionOnly: true,
     keySentInHeaderOnly: true,
     chatResponseRendered: true,
+    sseChunkedResponse: true,
     pageScrollStableAfterChat: true,
   };
   await desktop.close();

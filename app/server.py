@@ -3,16 +3,20 @@
 密钥只从请求头读取，传入进程内运行时；不会写入文件、数据库、日志或响应体。
 """
 import ipaddress
+import json
+import queue
 import sys
+import threading
+import time
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated, Iterator, Optional
 from urllib.parse import urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fastapi import FastAPI, Header, HTTPException  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from fastapi.responses import FileResponse  # noqa: E402
+from fastapi.responses import FileResponse, StreamingResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 from pydantic import BaseModel, ConfigDict, Field, field_validator  # noqa: E402
 
@@ -107,6 +111,53 @@ class ResetRequest(BaseModel):
     session_id: str = Field("default", min_length=1, max_length=120)
 
 
+def _request_config(
+    req: ChatRequest,
+    llm_api_key: Optional[str],
+    embedding_api_key: Optional[str],
+) -> Config:
+    """构造请求级配置；HTTP 请求不回退使用服务端环境变量中的 Key。"""
+    request_llm_key = _clean_key(llm_api_key)
+    request_embedding_key = _clean_key(embedding_api_key)
+    if not request_llm_key:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "code": "api_key_required",
+                "message": "请先在页面中配置模型 API Key。",
+            },
+        )
+    return Config(
+        llm_api_key=request_llm_key,
+        llm_base_url=req.provider.llm_base_url,
+        llm_model=req.provider.llm_model,
+        # 明确传入空串，避免 HTTP 请求意外借用服务端环境变量中的 Key。
+        embedding_api_key=request_embedding_key or "",
+        embedding_base_url=req.provider.embedding_base_url,
+        embedding_model=req.provider.embedding_model,
+    )
+
+
+def _runtime_error() -> HTTPException:
+    return HTTPException(
+        status_code=502,
+        detail={
+            "code": "runtime_unavailable",
+            "message": "模型服务暂时不可用，请检查服务地址、模型名称和密钥权限。",
+        },
+    )
+
+
+def _sse(payload: dict) -> str:
+    return f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+
+
+def _answer_chunks(answer: str, size: int = 22) -> Iterator[str]:
+    """按中文字符切成小片段，给前端提供自然的逐步呈现。"""
+    for start in range(0, len(answer), size):
+        yield answer[start : start + size]
+
+
 @app.get("/health")
 def health():
     """不初始化模型或向量服务的轻量健康检查。"""
@@ -145,39 +196,78 @@ def chat(
     ] = None,
 ):
     """执行问答；请求头密钥只进入当前进程的隔离运行时。"""
-    request_llm_key = _clean_key(llm_api_key)
-    request_embedding_key = _clean_key(embedding_api_key)
-    if not request_llm_key:
-        raise HTTPException(
-            status_code=401,
-            detail={
-                "code": "api_key_required",
-                "message": "请先在页面中配置模型 API Key。",
-            },
-        )
-    cfg = Config(
-        llm_api_key=request_llm_key,
-        llm_base_url=req.provider.llm_base_url,
-        llm_model=req.provider.llm_model,
-        # 明确传入空串，避免 HTTP 请求意外借用服务端环境变量中的 Key。
-        embedding_api_key=request_embedding_key or "",
-        embedding_base_url=req.provider.embedding_base_url,
-        embedding_model=req.provider.embedding_model,
-    )
+    cfg = _request_config(req, llm_api_key, embedding_api_key)
     try:
         return get_service().chat(req.question, req.session_id, cfg)
     except HTTPException:
         raise
-    except Exception as exc:
+    except Exception:
         # 仅暴露异常类型与可行动提示，不回显 SDK 错误中的 URL/Key/请求内容。
-        raise HTTPException(
-            status_code=502,
-            detail={
-                "code": "runtime_unavailable",
-                "message": "模型服务暂时不可用，请检查服务地址、模型名称和密钥权限。",
-                "type": type(exc).__name__,
-            },
-        ) from None
+        raise _runtime_error() from None
+
+
+@app.post("/api/chat/stream")
+def chat_stream(
+    req: ChatRequest,
+    llm_api_key: Annotated[Optional[str], Header(alias="X-LLM-API-Key")] = None,
+    embedding_api_key: Annotated[
+        Optional[str], Header(alias="X-Embedding-API-Key")
+    ] = None,
+):
+    """SSE 问答：先发状态，再将最终回答分片发送，前端可逐步渲染。"""
+    cfg = _request_config(req, llm_api_key, embedding_api_key)
+
+    def events() -> Iterator[str]:
+        yield _sse({"type": "status", "text": "已接收问题，正在检查安全边界…"})
+        result_queue: queue.Queue[tuple[str, object]] = queue.Queue()
+
+        def run() -> None:
+            try:
+                result_queue.put(
+                    ("result", get_service().chat(req.question, req.session_id, cfg))
+                )
+            except Exception as exc:  # 不把异常文本直接传给浏览器
+                result_queue.put(("error", exc))
+
+        worker = threading.Thread(target=run, daemon=True)
+        worker.start()
+        while True:
+            try:
+                kind, payload = result_queue.get(timeout=0.8)
+            except queue.Empty:
+                yield _sse({"type": "status", "text": "正在检索资料并组织中医教学回答…"})
+                continue
+            if kind == "error":
+                yield _sse(
+                    {
+                        "type": "error",
+                        "code": "runtime_unavailable",
+                        "message": "模型服务暂时不可用，请检查服务地址、模型名称和密钥权限。",
+                    }
+                )
+                return
+
+            result = payload if isinstance(payload, dict) else {}
+            answer = str(result.get("answer", ""))
+            yield _sse({"type": "status", "text": "回答已生成，正在逐步发送…"})
+            for chunk in _answer_chunks(answer):
+                yield _sse({"type": "delta", "text": chunk})
+                time.sleep(0.012)
+            yield _sse(
+                {
+                    "type": "meta",
+                    "channel": result.get("channel", "agent"),
+                    "route_trace": result.get("route_trace", []),
+                }
+            )
+            yield _sse({"type": "done"})
+            return
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.post("/api/reset")

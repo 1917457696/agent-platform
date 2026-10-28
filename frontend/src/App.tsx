@@ -159,6 +159,46 @@ function useReducedMotion() {
   return reduced;
 }
 
+type StreamEvent = {
+  type?: "status" | "delta" | "meta" | "done" | "error";
+  text?: string;
+  channel?: string;
+  route_trace?: string[];
+  message?: string;
+};
+
+async function* readSseEvents(response: Response): AsyncGenerator<StreamEvent> {
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("浏览器不支持流式响应");
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+      const blocks = buffer.split(/\r?\n\r?\n/);
+      buffer = blocks.pop() ?? "";
+      for (const block of blocks) {
+        const data = block
+          .split(/\r?\n/)
+          .filter((line) => line.startsWith("data:"))
+          .map((line) => line.slice(5).trim())
+          .join("\n");
+        if (data) yield JSON.parse(data) as StreamEvent;
+      }
+      if (done) break;
+    }
+    const finalData = buffer
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.slice(5).trim())
+      .join("\n");
+    if (finalData) yield JSON.parse(finalData) as StreamEvent;
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 function App() {
   const reducedMotion = useReducedMotion();
   const [activeSlide, setActiveSlide] = useState(0);
@@ -299,6 +339,11 @@ function App() {
     setQuestion("");
     setIsSending(true);
     setNotice("");
+    const assistantId = crypto.randomUUID();
+    setMessages((current) => [
+      ...current,
+      { id: assistantId, role: "assistant", content: "", channel: "streaming" },
+    ]);
 
     try {
       const headers: Record<string, string> = {
@@ -308,7 +353,7 @@ function App() {
       if (credentials.embeddingKey) {
         headers["X-Embedding-API-Key"] = credentials.embeddingKey;
       }
-      const response = await fetch("/api/chat", {
+      const response = await fetch("/api/chat/stream", {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -322,37 +367,44 @@ function App() {
           },
         }),
       });
-      const payload = await response.json();
       if (!response.ok) {
-        throw new Error(
-          payload?.detail?.message ?? "请求失败，请检查模型配置后重试。",
-        );
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.detail?.message ?? "请求失败，请检查模型配置后重试。");
       }
-      setMessages((current) => [
-        ...current,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: payload.answer ?? "服务未返回回答。",
-          channel: payload.channel,
-          trace: payload.route_trace,
-        },
-      ]);
+      for await (const event of readSseEvents(response)) {
+        if (event.type === "status") {
+          setNotice(event.text ?? "正在生成回答…");
+        } else if (event.type === "delta") {
+          setMessages((current) => current.map((message) => (
+            message.id === assistantId
+              ? { ...message, content: message.content + (event.text ?? "") }
+              : message
+          )));
+        } else if (event.type === "meta") {
+          setMessages((current) => current.map((message) => (
+            message.id === assistantId
+              ? { ...message, channel: event.channel, trace: event.route_trace }
+              : message
+          )));
+        } else if (event.type === "error") {
+          throw new Error(event.message ?? "服务暂时不可用，请稍后重试。");
+        } else if (event.type === "done") {
+          setNotice("");
+        }
+      }
     } catch (error) {
-      setMessages((current) => [
-        ...current,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content:
-            error instanceof Error
-              ? error.message
-              : "服务暂时不可用，请稍后重试。",
-          channel: "error",
-        },
-      ]);
+      setMessages((current) => current.map((message) => (
+        message.id === assistantId
+          ? {
+              ...message,
+              content: error instanceof Error ? error.message : "服务暂时不可用，请稍后重试。",
+              channel: "error",
+            }
+          : message
+      )));
     } finally {
       setIsSending(false);
+      setNotice("");
     }
   };
 
@@ -625,7 +677,7 @@ function App() {
                 {isSending && (
                   <article className="message assistant">
                     <div className="message-avatar"><Sparkles size={16} /></div>
-                    <div className="thinking"><span /><span /><span /> 正在编排任务</div>
+                    <div className="thinking"><span /><span /><span /> 正在流式整理回答</div>
                   </article>
                 )}
               </div>

@@ -13,6 +13,7 @@
 - **凭据隔离**：浏览器使用 `sessionStorage` 暂存 Key，经请求头发送；服务端只保存在进程内存，缓存与会话按不可逆配置指纹隔离。
 - **React 首页**：全屏轮播、自动播放与暂停、鼠标/触控切换、滚动显现、移动端布局、`prefers-reduced-motion` 适配。
 - **运行可观察**：问答响应展示通道与 Agent 路由轨迹。
+- **SSE 流式体验**：工作台通过 `/api/chat/stream` 接收状态、回答片段和最终路由元数据，回答会逐步呈现；原 `/api/chat` JSON 接口继续保留。
 
 ## API Key 安全边界
 
@@ -80,6 +81,7 @@ npm run verify:ui
 | `GET /health` | 轻量健康检查，不初始化模型或向量服务 |
 | `GET /api/config/status` | 返回公开默认值与“是否配置”布尔值，不返回 Key |
 | `POST /api/chat` | 问答；Key 通过请求头，供应商信息放在 `provider` 对象 |
+| `POST /api/chat/stream` | SSE 流式问答；事件类型为 `status`、`delta`、`meta`、`done` |
 | `POST /api/reset` | 清理指定会话在所有运行时中的状态 |
 
 示例（请使用测试 Key，不要把真实 Key 写入脚本或 Shell 历史）：

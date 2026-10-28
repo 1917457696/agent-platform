@@ -120,6 +120,20 @@ class ServerSecurityTests(unittest.TestCase):
         self.assertNotIn("dummy-key-must-not-leak", str(raised.exception.detail))
         self.assertEqual(raised.exception.detail["code"], "runtime_unavailable")
 
+    def test_sse_endpoint_uses_event_stream_and_chunked_answer(self):
+        stream = server.chat_stream(
+            server.ChatRequest(question="辨证论治是什么？"),
+            "dummy-key",
+            None,
+        )
+
+        self.assertEqual(stream.media_type, "text/event-stream")
+        self.assertEqual(
+            list(server._answer_chunks("甲乙丙丁戊", size=2)),
+            ["甲乙", "丙丁", "戊"],
+        )
+        self.assertIn('"type": "delta"', server._sse({"type": "delta", "text": "甲乙"}))
+
     def test_config_status_contains_no_secret_fields(self):
         with patch.dict(
             os.environ,
