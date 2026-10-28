@@ -470,6 +470,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .training-message p { display: inline-block; margin: 0; padding: 11px 13px; background: white; border: 1px solid rgba(19,35,31,.11); font-size: 12px; line-height: 1.7; text-align: left; }
 .training-message.student p { background: var(--green); color: var(--bone); border-color: var(--green); }
 .training-message small { display: block; margin-top: 4px; color: var(--vermillion); font-size: 8px; }
+.training-suggestions { margin-top: 13px; }
+.training-suggestions > span { display: block; margin-bottom: 7px; color: var(--muted); font-size: 9px; }
+.training-suggestions > div { display: flex; flex-wrap: wrap; gap: 7px; }
+.training-suggestions button { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 7px 9px; border: 1px solid rgba(18,62,53,.18); border-radius: 2px; background: rgba(255,255,255,.58); color: var(--green-2); text-align: left; font-size: 9px; line-height: 1.45; cursor: pointer; transition: border-color 160ms ease, background 160ms ease, transform 160ms ease; }
+.training-suggestions button:hover:not(:disabled) { border-color: var(--vermillion); background: var(--bone); transform: translateY(-1px); }
+.training-suggestions button:disabled { opacity: .45; cursor: not-allowed; }
 .training-composer { display: grid; grid-template-columns: 1fr auto; gap: 9px; margin-top: 13px; padding: 9px; border: 1px solid var(--line); background: white; }
 .training-composer textarea { min-height: 50px; resize: vertical; border: 0; outline: 0; padding: 5px; color: var(--ink); font-size: 11px; line-height: 1.6; }
 .training-composer button, .training-footer button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; align-self: end; min-height: 35px; padding: 0 12px; border: 0; background: var(--green); color: white; font-size: 10px; cursor: pointer; }

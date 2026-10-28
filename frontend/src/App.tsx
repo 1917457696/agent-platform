@@ -284,6 +284,24 @@ const trainingCases: TrainingCase[] = [
   },
 ];
 
+const trainingSuggestedQuestions: Record<string, string[]> = {
+  "chest-pain": [
+    "疼痛具体在哪里？是什么性质？",
+    "持续多久？活动后会加重、休息后会缓解吗？",
+    "有没有向肩背或手臂放射，伴随出汗、恶心或呼吸困难？",
+  ],
+  cough: [
+    "咳嗽从什么时候开始？这几天有什么变化？",
+    "有没有发热、怕冷或出汗？",
+    "有没有痰、喘或气短？痰是什么颜色？",
+  ],
+  fever: [
+    "最高体温是多少？从什么时候开始发热？",
+    "有没有呼吸困难、喘、头晕或意识不清？",
+    "发热前后有没有寒战、怕冷或出汗？",
+  ],
+};
+
 const practiceDemo = {
   casePrompt: "我在换季后咳嗽两天，先从这个医案开始陪练。",
   followUp: "补充信息：没有明显发热，咽部发痒，偶有白痰，睡眠和饮食基本正常；舌象和脉象暂时无法在线可靠获得。",
@@ -723,9 +741,8 @@ function App() {
     window.setTimeout(() => setNotice(""), 2600);
   };
 
-  const submitTrainingQuestion = (event: FormEvent) => {
-    event.preventDefault();
-    const content = trainingDraft.trim();
+  const submitTrainingText = (rawContent: string) => {
+    const content = rawContent.trim();
     if (!content || trainingReport) return;
     const selected = trainingCases.find((item) => item.id === trainingCaseId) ?? trainingCases[0];
     const response = selected.respond(content);
@@ -739,6 +756,11 @@ function App() {
       { id: crypto.randomUUID(), role: "patient", content: response.text, topic: response.topic },
     ]);
     setTrainingDraft("");
+  };
+
+  const submitTrainingQuestion = (event: FormEvent) => {
+    event.preventDefault();
+    submitTrainingText(trainingDraft);
   };
 
   const finishTraining = () => {
@@ -1165,6 +1187,10 @@ function App() {
                         {trainingMessages.map((message) => (
                           <article className={`training-message ${message.role}`} key={message.id}><span>{message.role === "patient" ? "患者" : "你"}</span><p>{message.content}</p>{message.topic && <small>{message.topic}</small>}</article>
                         ))}
+                      </div>
+                      <div className="training-suggestions" aria-label="快捷追问">
+                        <span>可以这样问</span>
+                        <div>{(trainingSuggestedQuestions[trainingCaseId] ?? trainingSuggestedQuestions["chest-pain"]).map((suggestion) => <button type="button" key={suggestion} onClick={() => submitTrainingText(suggestion)} disabled={Boolean(trainingReport)}>{suggestion}<ChevronRight size={13} /></button>)}</div>
                       </div>
                       <form className="training-composer" onSubmit={submitTrainingQuestion}>
                         <textarea id="training-question" value={trainingDraft} onChange={(event) => setTrainingDraft(event.target.value)} placeholder="像医生一样主动提问：疼痛在哪里？持续多久？有没有放射或大汗？" rows={2} />

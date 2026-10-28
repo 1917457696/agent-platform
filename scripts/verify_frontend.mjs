@@ -124,6 +124,8 @@ try {
   await desktopPage.getByText("teacher_review_required").waitFor();
   assert(await desktopPage.getByText("本地陪练演示完成：追问、来源、反馈和人工审核均已展示。").isVisible(), "本地陪练 Demo 未完成");
   await desktopPage.getByRole("button", { name: "进入病例训练" }).click();
+  await desktopPage.getByRole("button", { name: /疼痛具体在哪里/ }).click();
+  await desktopPage.getByText("主要在胸骨后偏左的位置").waitFor();
   await desktopPage.locator("#training-question").fill("疼痛在哪里、是什么性质、持续多久，活动和休息有什么关系，有没有放射到左肩或大汗，既往有高血压吗，是否过敏以及家族史如何？");
   await desktopPage.getByRole("button", { name: "追问患者" }).click();
   await desktopPage.locator("#training-judgement").fill("优先考虑需要排除急性冠脉综合征，依据是活动后胸痛、压榨感和向左肩放射；还需要结合危险信号和既往史进一步判断。");
