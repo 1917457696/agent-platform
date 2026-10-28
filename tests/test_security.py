@@ -10,6 +10,7 @@ from app.cache import Cache
 from app.config import Config
 from app.graph import _build_retrieval_tool
 from app import server
+from app.service import ChatService
 
 
 class _FakeService:
@@ -59,6 +60,17 @@ class ConfigSecurityTests(unittest.TestCase):
 
         self.assertIn("四诊", result)
         self.assertIn("tcm_demo.md", result)
+
+    def test_emergency_result_contains_local_observability_trace(self):
+        result = ChatService().chat(
+            "我现在持续胸痛并且呼吸困难",
+            "trace-check",
+            Config(llm_api_key="dummy-key"),
+        )
+        self.assertEqual(result["channel"], "guard")
+        self.assertIn("trace_id", result["observability"])
+        self.assertEqual(result["observability"]["nodes"][0]["label"], "安全护栏")
+        self.assertTrue(result["observability"]["token_usage"]["estimated"])
 
 
 class ServerSecurityTests(unittest.TestCase):

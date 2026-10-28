@@ -5,6 +5,8 @@
 Agent 历史或 FAQ 缓存。
 """
 from collections import OrderedDict
+from time import perf_counter
+from uuid import uuid4
 from typing import Optional
 
 from .cache import Cache
@@ -68,25 +70,41 @@ class ChatService:
         for runtime in self._runtimes.values():
             runtime.reset(session_id)
 
+    @staticmethod
+    def _observation(*, started: float, question: str, answer: str, channel: str, nodes: list[dict]) -> dict:
+        estimated_tokens = max(1, round((len(question) + len(answer)) / 2.6))
+        return {
+            "trace_id": uuid4().hex,
+            "latency_ms": round((perf_counter() - started) * 1000),
+            "channel": channel,
+            "token_usage": {"total_tokens": estimated_tokens, "estimated": True},
+            "nodes": nodes,
+            "exporter": "本地 Trace",
+        }
+
     def chat(self, question: str, session_id: str, cfg: Config) -> dict:
+        started = perf_counter()
         q = question.strip()
         if not q:
-            return {"answer": "请输入问题。", "channel": "empty"}
+            answer = "请输入问题。"
+            return {"answer": answer, "channel": "empty", "observability": self._observation(started=started, question=q, answer=answer, channel="empty", nodes=[])}
 
         # 急症护栏仍位于所有模型与检索通道之前。
         hit = detect_emergency(q)
         if hit:
+            answer = EMERGENCY_ANSWER
             return {
-                "answer": EMERGENCY_ANSWER,
+                "answer": answer,
                 "channel": "guard",
                 "emergency": hit,
+                "observability": self._observation(started=started, question=q, answer=answer, channel="guard", nodes=[{"name": "guard", "label": "安全护栏", "status": "completed", "detail": "命中急症信号，跳过模型", "duration_ms": round((perf_counter() - started) * 1000)}]),
             }
 
         runtime_key, runtime = self._get_runtime(cfg)
 
         cached = self._cache.get_answer(q, namespace=runtime_key)
         if cached:
-            return {"answer": cached, "channel": "cache"}
+            return {"answer": cached, "channel": "cache", "observability": self._observation(started=started, question=q, answer=cached, channel="cache", nodes=[{"name": "cache", "label": "缓存命中", "status": "completed", "detail": "复用已验证答案"}])}
 
         if runtime.faq is not None:
             faq = runtime.faq.match(q)
@@ -102,6 +120,7 @@ class ChatService:
                     "channel": "faq",
                     "faq_question": faq["question"],
                     "score": faq["score"],
+                    "observability": self._observation(started=started, question=q, answer=faq["answer"], channel="faq", nodes=[{"name": "faq", "label": "FAQ 命中", "status": "completed", "detail": "复用已审核高频答案"}]),
                 }
 
         result = runtime.get_agent(session_id).ask(q)
@@ -109,4 +128,5 @@ class ChatService:
             "answer": result["answer"],
             "channel": "agent",
             "route_trace": result["route_trace"],
+            "observability": result.get("observability"),
         }

@@ -50,6 +50,7 @@ type Message = {
   content: string;
   channel?: string;
   trace?: string[];
+  observability?: Observability;
 };
 
 type Conversation = {
@@ -87,6 +88,45 @@ type TrainingCase = {
   respond: (question: string) => { text: string; topic: string };
 };
 
+type TraceNode = {
+  name: string;
+  label: string;
+  status: "completed" | "running" | "waiting";
+  detail?: string;
+  duration_ms?: number;
+};
+
+type Observability = {
+  trace_id?: string;
+  latency_ms?: number;
+  channel?: string;
+  token_usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    total_tokens?: number;
+    estimated?: boolean;
+  };
+  nodes?: TraceNode[];
+  exporter?: string;
+};
+
+type CapabilityDetail = {
+  title: string;
+  purpose: string;
+  input: string;
+  output: string;
+  boundary: string;
+  next: string;
+};
+
+type WorkflowStep = {
+  number: string;
+  title: string;
+  copy: string;
+  detail: string;
+  Icon: typeof ShieldCheck;
+};
+
 const defaultCredentials: Credentials = {
   llmKey: "",
   llmBaseUrl: "https://api.deepseek.com",
@@ -108,7 +148,7 @@ const slides = [
   },
   {
     eyebrow: "02 / 证据",
-    kicker: "TCM CORPUS · RAG",
+    kicker: "中医资料库 · RAG 检索",
     title: "回答有出处，\n辨证不越界。",
     body: "优先检索经过整理的中医教学资料；缺少 Embedding Key 或索引时，仍可用本地词法检索演示。",
     tag: "中医知识库",
@@ -133,6 +173,7 @@ const capabilityCards = [
     title: "经典知识库",
     copy: "围绕阴阳、五行、四诊与辨证论治整理教学资料，回答优先回到中医语境。",
     detail: "来源与章节可回看",
+    explanation: { title: "经典知识库", purpose: "把课程、经典和审核过的医案整理成可检索的教学证据。", input: "学员问题、课程主题、章节范围", output: "带章节来源的解释与复习线索", boundary: "找不到可靠来源时不编造，也不直接给个人诊疗结论。", next: "在工作台提问后，可从回答卡片查看命中的来源。" },
   },
   {
     icon: Database,
@@ -140,6 +181,7 @@ const capabilityCards = [
     title: "医案拆解",
     copy: "把合成案例拆成主诉、时间线、缺失信息和课堂讨论点，不直接替学员下诊断。",
     detail: "从案例回到方法",
+    explanation: { title: "医案拆解", purpose: "把一个复杂医案拆成主诉、时间线、缺失信息和课堂讨论点。", input: "合成医案、学员追问、课程章节", output: "病程摘要、追问建议、学习反馈", boundary: "病例事实固定在演示数据中，不随机创造患者信息。", next: "点击工作台的“进入病例训练”，让 AI 扮演患者。" },
   },
   {
     icon: ShieldCheck,
@@ -147,6 +189,7 @@ const capabilityCards = [
     title: "辨证边界",
     copy: "强调四诊合参与教师审核，拒绝单症状定证、个人处方、剂量和停换药建议。",
     detail: "教学解释不代诊疗",
+    explanation: { title: "辨证边界", purpose: "在回答前识别高风险内容，确保教学解释不滑向在线诊疗。", input: "症状、处方、剂量、急症和特殊人群描述", output: "继续教学、拒答、急诊提示或转人工审核", boundary: "不凭单一症状定证，不提供个人处方、剂量或停换药建议。", next: "在本地陪练 Demo 的最后一步输入“直接开方”，查看安全闸。" },
   },
   {
     icon: Fingerprint,
@@ -154,7 +197,15 @@ const capabilityCards = [
     title: "师承式审核",
     copy: "AI 负责资料整理、复习题和答疑草稿，涉及临床决策的内容保留教师与执业医师入口。",
     detail: "人机协作可追溯",
+    explanation: { title: "师承式审核", purpose: "让 AI 做整理和草稿，让教师保留临床教学决策权。", input: "AI 回答、引用来源、学员错误和风险标签", output: "可编辑反馈草稿、人工审核工单、Bad Case", boundary: "AI 不是最终审核人，生产环境需要教师和执业医师确认。", next: "报告页会展示遗漏项，后续可接入教师审核队列。" },
   },
+];
+
+const workflowSteps: WorkflowStep[] = [
+  { number: "01", title: "护栏先行", copy: "识别高风险描述，必要时直接提示急诊。", detail: "先用规则检查急症信号；命中后不调用模型和知识库，直接给出安全提示并保留人工入口。", Icon: ShieldCheck },
+  { number: "02", title: "缓存与常见问答", copy: "对已验证的高频答案进行低成本复用。", detail: "相同问题优先命中已审核答案，减少延迟和模型成本；命中结果会在本次运行记录中标记。", Icon: Layers3 },
+  { number: "03", title: "主控分流", copy: "识别任务类型，只负责交接，不越权代答。", detail: "主控模块判断是中医知识、工具问题还是普通寒暄，再把任务交给对应子图。", Icon: Route },
+  { number: "04", title: "专家执行", copy: "调用检索或工具，返回答案与路由轨迹。", detail: "医疗子图负责 RAG 和教学回答，通用工具子图负责日期与计算；最终结果附带耗时、Token 和节点路径。", Icon: Bot },
 ];
 
 const starterPrompts = [
@@ -303,6 +354,14 @@ function formatConversationTime(timestamp: number): string {
   return date.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
 }
 
+function readableTraceStep(step: string): string {
+  if (step.startsWith("guard")) return step.includes("急症") ? "安全护栏：命中风险" : "安全护栏：通过";
+  if (step === "supervisor") return "主控分流";
+  if (step.includes("医疗知识")) return "中医知识子图";
+  if (step.includes("通用工具")) return "通用工具子图";
+  return step;
+}
+
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
@@ -320,6 +379,7 @@ type StreamEvent = {
   text?: string;
   channel?: string;
   route_trace?: string[];
+  observability?: Observability;
   message?: string;
 };
 
@@ -381,9 +441,14 @@ function App() {
   const [trainingMessages, setTrainingMessages] = useState<TrainingMessage[]>([]);
   const [trainingAsked, setTrainingAsked] = useState<string[]>([]);
   const [trainingReport, setTrainingReport] = useState<TrainingReport | null>(null);
+  const [activeCapability, setActiveCapability] = useState<CapabilityDetail | null>(null);
+  const [activeWorkflowStep, setActiveWorkflowStep] = useState(0);
+  const [lastTrace, setLastTrace] = useState<Observability | null>(null);
+  const [tracePhase, setTracePhase] = useState("等待下一次运行");
   const pointerStart = useRef<number | null>(null);
   const workspaceRef = useRef<HTMLElement | null>(null);
   const messageListRef = useRef<HTMLDivElement | null>(null);
+  const pageScrollLockRef = useRef<number | null>(null);
 
   const hasKey = Boolean(credentials.llmKey.trim());
 
@@ -438,7 +503,7 @@ function App() {
     // 只滚动消息列表本身，避免 scrollIntoView 把整个长页面拉到最底部。
     const messageList = messageListRef.current;
     if (!messageList) return;
-    const pageScrollY = window.scrollY;
+    const pageScrollY = pageScrollLockRef.current ?? window.scrollY;
     messageList.scrollTo({
       top: messageList.scrollHeight,
       behavior: "auto",
@@ -520,6 +585,7 @@ function App() {
       content,
     };
     setMessages((current) => [...current, userMessage]);
+    pageScrollLockRef.current = window.scrollY;
     setQuestion("");
     setIsSending(true);
     setNotice("");
@@ -528,6 +594,8 @@ function App() {
       ...current,
       { id: assistantId, role: "assistant", content: "", channel: "streaming" },
     ]);
+    setTracePhase("正在启动：安全护栏");
+    setLastTrace({ exporter: "本地 Trace", nodes: [{ name: "guard", label: "安全护栏", status: "running", detail: "检查急症与高风险描述" }] });
 
     try {
       const headers: Record<string, string> = {
@@ -558,6 +626,7 @@ function App() {
       for await (const event of readSseEvents(response)) {
         if (event.type === "status") {
           setNotice(event.text ?? "正在生成回答…");
+          setTracePhase(event.text ?? "正在运行节点…");
         } else if (event.type === "delta") {
           setMessages((current) => current.map((message) => (
             message.id === assistantId
@@ -567,9 +636,11 @@ function App() {
         } else if (event.type === "meta") {
           setMessages((current) => current.map((message) => (
             message.id === assistantId
-              ? { ...message, channel: event.channel, trace: event.route_trace }
+              ? { ...message, channel: event.channel, trace: event.route_trace, observability: event.observability }
               : message
           )));
+          setLastTrace({ ...(event.observability ?? {}), channel: event.channel });
+          setTracePhase("运行完成，可查看本次 Trace");
         } else if (event.type === "error") {
           throw new Error(event.message ?? "服务暂时不可用，请稍后重试。");
         } else if (event.type === "done") {
@@ -589,6 +660,12 @@ function App() {
     } finally {
       setIsSending(false);
       setNotice("");
+      setTracePhase((current) => current === "运行完成，可查看本次 Trace" ? current : "运行结束");
+      const lockedScrollY = pageScrollLockRef.current;
+      window.requestAnimationFrame(() => {
+        if (lockedScrollY != null) window.scrollTo({ top: lockedScrollY, behavior: "auto" });
+        pageScrollLockRef.current = null;
+      });
     }
   };
 
@@ -715,6 +792,13 @@ function App() {
     setQuestion("");
     setIsSending(true);
     setDemoStep("inquiry");
+    setTracePhase("本地演示：正在运行陪练节点");
+    setLastTrace({ exporter: "本地 Trace（离线演示）", channel: "课程陪练", latency_ms: 2860, token_usage: { total_tokens: 620, estimated: true }, nodes: [
+      { name: "guard", label: "安全护栏", status: "completed", detail: "教学场景边界检查", duration_ms: 12 },
+      { name: "inquiry", label: "缺槽追问", status: "completed", detail: "补齐病程、寒热、痰与四诊信息", duration_ms: 410 },
+      { name: "rag", label: "课程检索", status: "completed", detail: "命中中医教培演示资料", duration_ms: 328 },
+      { name: "review", label: "教师审核", status: "completed", detail: "处方请求转人工", duration_ms: 90 },
+    ] });
     setNotice("本地演示模式：正在模拟学员与课程助教的陪练流程…");
     const wait = (duration: number) => new Promise((resolve) => window.setTimeout(resolve, duration));
 
@@ -742,7 +826,7 @@ function App() {
         role: "assistant",
         content: practiceDemo.feedback,
         channel: "课程陪练 · 来源可核",
-        trace: ["缺槽追问", "TCM RAG", "学习反馈"],
+        trace: ["缺槽追问", "中医资料检索", "学习反馈"],
       },
     ]);
     setDemoStep("safety");
@@ -759,11 +843,12 @@ function App() {
         role: "assistant",
         content: practiceDemo.safety,
         channel: "安全闸 · 教师审核",
-        trace: ["风险识别", "处方越界拦截", "teacher review"],
+        trace: ["风险识别", "处方越界拦截", "教师审核"],
       },
     ]);
     setDemoStep("safety");
     setIsSending(false);
+    setTracePhase("本地演示完成，可查看节点流转");
     setNotice("本地陪练演示完成：追问、来源、反馈和人工审核均已展示。");
     window.setTimeout(() => setNotice(""), 3200);
   };
@@ -775,7 +860,7 @@ function App() {
           <span className="brand-mark" aria-hidden="true">岐</span>
           <span className="brand-copy">
             <strong>岐序</strong>
-            <small>TCM EDUCATION AGENT</small>
+            <small>中医教培智能助教</small>
           </span>
         </a>
 
@@ -825,7 +910,7 @@ function App() {
         >
           <div className="paper-grain" aria-hidden="true" />
           <div className="hero-rail" aria-hidden="true">
-            <span>HEALTH KNOWLEDGE</span><span>AGENT ORCHESTRATION</span><span>SAFETY FIRST</span>
+            <span>医学知识</span><span>智能编排</span><span>安全优先</span>
           </div>
 
           <div className="slides-viewport">
@@ -921,48 +1006,76 @@ function App() {
                 className="capability-card"
                 key={card.title}
                 data-reveal
+                role="button"
+                tabIndex={0}
+                aria-label={`查看${card.title}能力详情`}
                 style={{ "--delay": `${index * 80}ms` } as React.CSSProperties}
+                onClick={() => setActiveCapability(card.explanation)}
+                onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setActiveCapability(card.explanation); } }}
               >
                 <div className="card-topline"><span>{card.index}</span><Icon size={25} /></div>
                 <h3>{card.title}</h3>
                 <p>{card.copy}</p>
-                <div className="card-detail"><span />{card.detail}</div>
+                <div className="card-detail"><span />查看详情 · {card.detail}</div>
               </article>
             ))}
           </div>
+          {activeCapability && (
+            <div className="detail-overlay" role="presentation" onClick={() => setActiveCapability(null)}>
+              <article className="detail-dialog" role="dialog" aria-modal="true" aria-labelledby="capability-dialog-title" onClick={(event) => event.stopPropagation()}>
+                <button type="button" className="detail-close" aria-label="关闭能力详情" onClick={() => setActiveCapability(null)}><X size={18} /></button>
+                <span className="section-number">能力说明 · 可验证</span>
+                <h3 id="capability-dialog-title">{activeCapability.title}</h3>
+                <p className="detail-purpose">{activeCapability.purpose}</p>
+                <dl className="detail-list">
+                  <div><dt>输入</dt><dd>{activeCapability.input}</dd></div>
+                  <div><dt>输出</dt><dd>{activeCapability.output}</dd></div>
+                  <div><dt>边界</dt><dd>{activeCapability.boundary}</dd></div>
+                  <div><dt>怎么查看</dt><dd>{activeCapability.next}</dd></div>
+                </dl>
+              </article>
+            </div>
+          )}
         </section>
 
         <section id="workflow" className="workflow section-pad">
           <div className="workflow-grid">
             <div className="workflow-intro" data-reveal>
-              <span className="section-number light">运行路径 · TRACE</span>
+              <span className="section-number light">运行路径 · 节点记录</span>
               <h2>一次提问，<br />四次确认。</h2>
               <p>每一步都有明确职责，模型不是唯一的判断者。</p>
             </div>
-            <ol className="workflow-steps">
-              {[
-                ["01", "护栏先行", "识别高风险描述，必要时直接提示急诊。", ShieldCheck],
-                ["02", "缓存与 FAQ", "对已验证的高频答案进行低成本复用。", Layers3],
-                ["03", "主控分流", "识别任务类型，只负责交接，不越权代答。", Route],
-                ["04", "专家执行", "调用检索或工具，返回答案与路由轨迹。", Bot],
-              ].map(([number, title, copy, Icon], index) => {
-                const StepIcon = Icon as typeof ShieldCheck;
-                return (
-                  <li key={String(number)} data-reveal style={{ "--delay": `${index * 90}ms` } as React.CSSProperties}>
-                    <span className="step-number">{String(number)}</span>
-                    <StepIcon size={21} />
-                    <div><h3>{String(title)}</h3><p>{String(copy)}</p></div>
-                  </li>
-                );
-              })}
-            </ol>
+            <div className="workflow-column">
+              <ol className="workflow-steps">
+                {workflowSteps.map((step, index) => {
+                  const StepIcon = step.Icon;
+                  return (
+                    <li key={step.number} className={activeWorkflowStep === index ? "is-active" : ""} data-reveal style={{ "--delay": `${index * 90}ms` } as React.CSSProperties}>
+                      <button type="button" className="workflow-step-button" onClick={() => setActiveWorkflowStep(index)} aria-expanded={activeWorkflowStep === index}>
+                        <span className="step-number">{step.number}</span><StepIcon size={21} />
+                        <div><h3>{step.title}</h3><p>{step.copy}</p></div><ChevronRight size={16} />
+                      </button>
+                      {activeWorkflowStep === index && <div className="workflow-step-detail">{step.detail}</div>}
+                    </li>
+                  );
+                })}
+              </ol>
+              <div className="trace-console" aria-live="polite">
+                <div className="trace-console-heading"><div><span className="section-number light">本次运行 · 实时记录</span><strong>{tracePhase}</strong></div><span className={lastTrace ? "trace-status is-ready" : "trace-status"}>{lastTrace ? "已采集" : "等待运行"}</span></div>
+                {lastTrace ? <>
+                  <div className="trace-metrics"><span><b>总耗时</b>{lastTrace.latency_ms != null ? `${lastTrace.latency_ms} 毫秒` : "运行中"}</span><span><b>Token 用量（模型计费单位）</b>{lastTrace.token_usage?.total_tokens != null ? `${lastTrace.token_usage.total_tokens}${lastTrace.token_usage.estimated ? "（估算）" : ""}` : "等待返回"}</span><span><b>处理通道</b>{lastTrace.channel === "agent" ? "智能助手" : (lastTrace.channel ?? "智能助手")}</span><span><b>记录方式</b>{lastTrace.exporter ?? "本地运行记录"}</span></div>
+                  <div className="trace-node-list">{(lastTrace.nodes ?? []).map((node) => <div className={`trace-node ${node.status}`} key={`${node.name}-${node.label}`}><span className="trace-node-dot" /><div><strong>{node.label}</strong><small>{node.detail ?? "节点已完成"}</small></div>{node.duration_ms != null && <em>{node.duration_ms} ms</em>}</div>)}</div>
+                  <p className="trace-note">本地运行记录默认开启；生产环境可将同一事件结构接入 Langfuse 或 LangSmith，查看完整链路与成本。</p>
+                </> : <p className="trace-empty">发送一次问题后，这里会显示安全护栏、主控分流、知识检索、模型回答的节点流转，以及本次耗时和 Token 用量。当前不需要外部观测账号。</p>}
+              </div>
+            </div>
           </div>
         </section>
 
         <section id="workspace" className="workspace section-pad" ref={workspaceRef}>
           <div className="workspace-heading" data-reveal>
             <div>
-              <span className="section-number">中医教培工作台 · LIVE</span>
+              <span className="section-number">中医教培工作台 · 实时</span>
               <h2>把经典与医案放进来，<br />看系统如何讲清楚。</h2>
             </div>
             <div className="workspace-status">
@@ -976,7 +1089,7 @@ function App() {
             <aside className="console-sidebar">
               <div className="console-brand"><Activity size={18} /><span>协理控制台</span></div>
               <div className="demo-panel">
-                <div className="demo-panel-topline"><span>LIVE DEMO</span><span className="demo-dot" /></div>
+                <div className="demo-panel-topline"><span>现场演示</span><span className="demo-dot" /></div>
                 <strong>中医课程陪练</strong>
                 <p>无需 API Key，先跑通一条现场演示链路。</p>
                 <button type="button" className="demo-button" onClick={() => void runPracticeDemo()} disabled={isSending}>
@@ -1010,16 +1123,16 @@ function App() {
               </div>
               <p className="history-caption">演示记录仅保存在当前标签页，不跨设备同步。</p>
               <div className="console-metric">
-                <span>RUNTIME</span><strong>{hasKey ? "READY" : "STANDBY"}</strong>
+                <span>运行状态</span><strong>{hasKey ? "模型已就绪" : "等待配置"}</strong>
               </div>
               <div className="console-metric">
-                <span>KNOWLEDGE MODE</span><strong>TCM TEACHING</strong>
+                <span>知识范围</span><strong>中医教培资料</strong>
               </div>
               <div className="console-metric">
-                <span>RETRIEVAL</span><strong>{credentials.embeddingKey ? "RAG + BM25" : "LOCAL BM25"}</strong>
+                <span>检索方式</span><strong>{credentials.embeddingKey ? "向量 + 关键词" : "本地关键词"}</strong>
               </div>
               <div className="console-metric">
-                <span>SESSION</span><strong>ISOLATED</strong>
+                <span>会话范围</span><strong>当前标签页隔离</strong>
               </div>
               <div className="sidebar-rule" />
               <button type="button" className="reset-button" onClick={resetConversation}>
@@ -1030,7 +1143,7 @@ function App() {
 
             <div className="chat-panel">
               <div className="chat-header">
-                <div><span className="live-dot" /><strong>岐序 Agent</strong><small>{demoStep === "idle" ? "Supervisor 在线" : `陪练阶段 · ${demoStep === "inquiry" ? "补齐信息" : demoStep === "feedback" ? "学习反馈" : "教师审核"}`}</small></div>
+                <div><span className="live-dot" /><strong>岐序智能助手</strong><small>{demoStep === "idle" ? "主控模块在线" : `陪练阶段 · ${demoStep === "inquiry" ? "补齐信息" : demoStep === "feedback" ? "学习反馈" : "教师审核"}`}</small></div>
                 <div className="chat-header-actions">
                   {trainingOpen && <button type="button" onClick={closeTraining} aria-label="退出病例训练">退出训练</button>}
                   <button type="button" onClick={openSettings} aria-label="打开设置"><Settings2 size={18} /></button>
@@ -1042,7 +1155,7 @@ function App() {
                   {!trainingReport ? (
                     <>
                       <div className="training-case-picker">
-                        <div><span className="section-number">CLINICAL TRAINING</span><h3>你是医生，AI 扮演患者</h3><p>不要急着猜答案，先通过问诊逐步获取信息。</p></div>
+                        <div><span className="section-number">临床训练 · Clinical Training</span><h3>你是医生，AI 扮演患者</h3><p>不要急着猜答案，先通过问诊逐步获取信息。</p></div>
                         <label>选择病例<select value={trainingCaseId} onChange={(event) => startTraining(event.target.value)} disabled={trainingMessages.length > 1}><option value="chest-pain">胸痛 · 急性风险识别</option><option value="cough">咳嗽 · 四诊信息采集</option><option value="fever">发热 · 风险分层</option></select></label>
                       </div>
                       <div className="training-meta-row">
@@ -1062,10 +1175,10 @@ function App() {
                     </>
                   ) : (
                     <div className="training-report">
-                      <div className="report-heading"><div><span className="section-number">CLINICAL TRAINING REPORT</span><h3>这次问诊，你学到了什么？</h3><p>评分由结构化覆盖规则生成，反馈用于训练，不替代临床判断。</p></div><div className="overall-score"><strong>{trainingReport.overall}</strong><span>综合评分</span></div></div>
+                      <div className="report-heading"><div><span className="section-number">临床训练报告 · Training Report</span><h3>这次问诊，你学到了什么？</h3><p>评分由结构化覆盖规则生成，反馈用于训练，不替代临床判断。</p></div><div className="overall-score"><strong>{trainingReport.overall}</strong><span>综合评分</span></div></div>
                       <div className="score-grid">{[["问诊完整度", trainingReport.completeness], ["关键症状覆盖", trainingReport.coverage], ["临床思维", trainingReport.reasoning], ["风险意识", trainingReport.safety]].map(([label, score]) => <div className="score-card" key={String(label)}><span>{String(label)}</span><strong>{String(score)}</strong><i><b style={{ width: `${Number(score)}%` }} /></i></div>)}</div>
                       <div className="report-columns"><div><h4>你的初步判断</h4><p className="report-judgement">{trainingJudgement}</p><h4>你做得好的地方</h4><p>你已经覆盖了 {trainingReport.asked.length} 个核心问诊维度，并保留了连续追问的上下文。下一次可以更早确认高风险伴随症状。</p><h4>为什么重要</h4><p>临床训练不只看问了多少，而是看能否优先获取会改变风险分层和下一步决策的信息。</p></div><div><h4>你遗漏的问题</h4>{trainingReport.missed.length ? <ul>{trainingReport.missed.map((item) => <li key={item}><span>⚠</span>{item}</li>)}</ul> : <p className="report-good">✓ 核心维度覆盖完整</p>}<h4>下一步建议</h4><p>复习“胸痛危险信号与问诊顺序”，再用同一病例尝试更短、更有优先级的提问路径。</p></div></div>
-                      <div className="reasoning-timeline"><h4>Clinical Reasoning Timeline</h4><div>{(trainingCases.find((item) => item.id === trainingCaseId) ?? trainingCases[0]).keyQuestions.map((item, index) => <span className={trainingReport.asked.includes(item.label) ? "timeline-step is-done" : "timeline-step is-missed"} key={item.label}><b>{String(index + 1).padStart(2, "0")}</b><i>{trainingReport.asked.includes(item.label) ? "✓" : "⚠"}</i><em>{item.label}</em></span>)}</div></div>
+                      <div className="reasoning-timeline"><h4>临床思维时间轴 · Clinical Reasoning Timeline</h4><div>{(trainingCases.find((item) => item.id === trainingCaseId) ?? trainingCases[0]).keyQuestions.map((item, index) => <span className={trainingReport.asked.includes(item.label) ? "timeline-step is-done" : "timeline-step is-missed"} key={item.label}><b>{String(index + 1).padStart(2, "0")}</b><i>{trainingReport.asked.includes(item.label) ? "✓" : "⚠"}</i><em>{item.label}</em></span>)}</div></div>
                     </div>
                   )}
                 </section>
@@ -1083,7 +1196,13 @@ function App() {
                       </div>
                       <p>{message.content}</p>
                       {message.trace && message.trace.length > 0 && (
-                        <div className="trace-row"><Route size={14} />{message.trace.join("  →  ")}</div>
+                        <div className="trace-row"><Route size={14} />{message.trace.map(readableTraceStep).join("  →  ")}</div>
+                      )}
+                      {message.observability && (
+                        <details className="message-trace">
+                          <summary>查看本次运行 Trace · {message.observability.latency_ms ?? "—"} ms · {message.observability.token_usage?.total_tokens ?? "—"}{message.observability.token_usage?.estimated ? "（估算 Token）" : " Token"}</summary>
+                          <div>{(message.observability.nodes ?? []).map((node) => <span key={`${node.name}-${node.label}`}><b>✓</b>{node.label}</span>)}</div>
+                        </details>
                       )}
                     </div>
                   </article>
@@ -1136,12 +1255,12 @@ function App() {
         <section className="closing-statement section-pad" data-reveal>
           <div className="closing-mark">岐</div>
           <p>技术负责抵达，<br />边界负责守住。</p>
-          <span>QIXU TCM EDUCATION AGENT · 2026</span>
+          <span>岐序 · 中医教培智能助教 · 2026</span>
         </section>
       </main>
 
       <footer>
-        <div className="brand compact"><span className="brand-mark">岐</span><span className="brand-copy"><strong>岐序</strong><small>TCM EDUCATION AGENT</small></span></div>
+        <div className="brand compact"><span className="brand-mark">岐</span><span className="brand-copy"><strong>岐序</strong><small>中医教培智能助教</small></span></div>
         <p>中医教学资料与合成医案演示 · 不接入真实医疗生产系统</p>
         <a href="#top">回到顶部 <ArrowRight size={14} /></a>
       </footer>
@@ -1182,7 +1301,7 @@ function App() {
               <details className="advanced-settings">
                 <summary><Database size={17} /> 可选：启用向量检索 <ChevronRight size={16} /></summary>
                 <div className="advanced-body">
-                  <p>不填写 Embedding Key 时，系统会自动使用本地 BM25 检索。</p>
+                  <p>不填写向量检索配置时，系统会自动使用本地关键词检索（BM25），不影响现场演示。</p>
                   <label><span>Embedding API Key</span><input type="password" value={draftCredentials.embeddingKey} onChange={(event) => setDraftCredentials({ ...draftCredentials, embeddingKey: event.target.value })} placeholder="可留空" autoComplete="off" /></label>
                   <div className="field-row">
                     <label><span>Embedding 地址</span><input type="url" value={draftCredentials.embeddingBaseUrl} onChange={(event) => setDraftCredentials({ ...draftCredentials, embeddingBaseUrl: event.target.value })} /></label>

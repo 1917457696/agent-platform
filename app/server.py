@@ -258,6 +258,7 @@ def chat_stream(
                     "type": "meta",
                     "channel": result.get("channel", "agent"),
                     "route_trace": result.get("route_trace", []),
+                    "observability": result.get("observability", {}),
                 }
             )
             yield _sse({"type": "done"})

@@ -12,7 +12,7 @@
 - **安全护栏**：急症关键词在模型链路之前执行；个人症状、方药剂量和高风险内容转教师/执业医师审核。
 - **凭据隔离**：浏览器使用 `sessionStorage` 暂存 Key，经请求头发送；服务端只保存在进程内存，缓存与会话按不可逆配置指纹隔离。
 - **React 首页**：全屏轮播、自动播放与暂停、鼠标/触控切换、滚动显现、移动端布局、`prefers-reduced-motion` 适配。
-- **运行可观察**：问答响应展示通道与 Agent 路由轨迹。
+- **运行可观察**：每次问答返回本地 Trace，展示安全护栏、主控分流、知识检索/工具、流式回答的节点路径，以及总耗时和 Token（供应商未返回用量时明确标注为估算）。
 - **SSE 流式体验**：工作台通过 `/api/chat/stream` 接收状态、回答片段和最终路由元数据，回答会逐步呈现；原 `/api/chat` JSON 接口继续保留。
 - **对话记录（演示态）**：左侧支持新建、切换和重置对话；记录保存在当前浏览器标签页的 `sessionStorage`，用于现场演示，不代表账号级历史。
 - **本地陪练 Demo**：工作台提供“开始现场 Demo”入口，不依赖 API Key 即可演示合成医案追问、课程来源、学习反馈和处方越界转教师审核；真实模型问答仍可通过 API Key 展开。
@@ -79,7 +79,7 @@ python -m unittest discover -s tests -v
 npm run verify:ui
 ```
 
-测试覆盖：运行配置指纹隔离、缓存命名空间隔离、缺少 Key 拒绝、Key 不回显、运行时异常脱敏、外部 HTTP 地址拒绝、配置状态接口脱敏。浏览器回归还会验证全屏轮播、触摸滑动、卡片悬停、滚动显现、390px 移动端、Key 请求头和 reduced-motion。测试不访问真实模型服务。
+测试覆盖：运行配置指纹隔离、缓存命名空间隔离、缺少 Key 拒绝、Key 不回显、运行时异常脱敏、外部 HTTP 地址拒绝、配置状态接口脱敏和本地 Trace 结构。浏览器回归还会验证能力卡片详情、运行路径展开、全屏轮播、触摸滑动、卡片悬停、滚动显现、390px 移动端、Key 请求头和 reduced-motion。测试不访问真实模型服务。
 
 ## HTTP 接口
 
@@ -88,7 +88,7 @@ npm run verify:ui
 | `GET /health` | 轻量健康检查，不初始化模型或向量服务 |
 | `GET /api/config/status` | 返回公开默认值与“是否配置”布尔值，不返回 Key |
 | `POST /api/chat` | 问答；Key 通过请求头，供应商信息放在 `provider` 对象 |
-| `POST /api/chat/stream` | SSE 流式问答；事件类型为 `status`、`delta`、`meta`、`done` |
+| `POST /api/chat/stream` | SSE 流式问答；事件类型为 `status`、`delta`、`meta`、`done`；`meta.observability` 包含 Trace、节点路径、耗时和 Token |
 | `POST /api/reset` | 清理指定会话在所有运行时中的状态 |
 
 示例（请使用测试 Key，不要把真实 Key 写入脚本或 Shell 历史）：

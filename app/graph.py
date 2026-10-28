@@ -17,7 +17,9 @@
 4. 安全护栏：急症规则前置，医疗场景安全优先。
 """
 from functools import lru_cache
+from time import perf_counter
 from typing import Annotated, Optional, TypedDict
+from uuid import uuid4
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.tools import tool
@@ -293,6 +295,7 @@ class AgentPlatform:
         self._trace = []
 
     def ask(self, question: str) -> dict:
+        started = perf_counter()
         self._history.append(HumanMessage(content=question))
         result = self._graph.invoke(
             {"messages": self._history, "steps": 0, "route_trace": [], "emergency": False},
@@ -301,4 +304,34 @@ class AgentPlatform:
         answer = result["messages"][-1].content
         self._history = result["messages"]
         self._trace = result["route_trace"]
-        return {"answer": str(answer), "route_trace": self._trace}
+        usage = {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+        for message in result["messages"]:
+            metadata = getattr(message, "usage_metadata", None) or {}
+            usage["input_tokens"] += int(metadata.get("input_tokens", 0) or 0)
+            usage["output_tokens"] += int(metadata.get("output_tokens", 0) or 0)
+            usage["total_tokens"] += int(metadata.get("total_tokens", 0) or 0)
+        estimated = usage["total_tokens"] <= 0
+        if estimated:
+            usage["total_tokens"] = max(1, round((len(question) + len(str(answer))) / 2.6))
+        nodes = []
+        for item in self._trace:
+            if item.startswith("guard"):
+                nodes.append({"name": "guard", "label": "安全护栏", "status": "completed", "detail": "检查急症与高风险描述"})
+            elif item == "supervisor":
+                nodes.append({"name": "supervisor", "label": "主控分流", "status": "completed", "detail": "判断任务类型并选择专家子图"})
+            elif "医疗知识" in item:
+                nodes.append({"name": "medical", "label": "知识检索与回答", "status": "completed", "detail": "调用中医资料检索和教学回答"})
+            elif "通用工具" in item:
+                nodes.append({"name": "utility", "label": "通用工具", "status": "completed", "detail": "调用日期或计算工具"})
+        nodes.append({"name": "answer", "label": "流式回答", "status": "completed", "detail": "生成回答并返回引用与轨迹"})
+        return {
+            "answer": str(answer),
+            "route_trace": self._trace,
+            "observability": {
+                "trace_id": uuid4().hex,
+                "latency_ms": round((perf_counter() - started) * 1000),
+                "token_usage": {**usage, "estimated": estimated},
+                "nodes": nodes,
+                "exporter": "本地 Trace",
+            },
+        }

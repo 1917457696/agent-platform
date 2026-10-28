@@ -163,6 +163,13 @@ try {
   await desktopPage.waitForTimeout(380);
   const hoverTransform = await firstCard.evaluate((element) => getComputedStyle(element).transform);
   assert(hoverTransform !== "none", "卡片悬停效果未生效");
+  await firstCard.click();
+  assert(await desktopPage.getByRole("dialog").isVisible(), "能力卡片详情未打开");
+  await desktopPage.getByRole("button", { name: "关闭能力详情" }).click();
+  const workflowStep = desktopPage.locator(".workflow-step-button").first();
+  await workflowStep.click();
+  assert(await desktopPage.locator(".workflow-step-detail").first().isVisible(), "运行路径详情未展开");
+  assert(await desktopPage.getByText("本次运行 · 实时记录").isVisible(), "运行 Trace 面板不可见");
 
   await desktopPage.screenshot({
     path: path.join(evidenceDir, "desktop-home.png"),
