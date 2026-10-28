@@ -1,14 +1,15 @@
-# 岐序 · 多 Agent 医疗协理平台
+# 岐序 · 中医教培智能助教
 
-一个可运行的垂直领域 Agent 应用：React 首页与问答工作台负责交互，FastAPI 接收用户自己的 OpenAI 兼容 API Key，LangGraph 负责主控分流和专家子图，知识问答支持混合检索与本地 BM25 降级。
+一个面向中医继续教育的垂直领域 Agent 应用：React 首页与问答工作台负责交互，FastAPI 接收用户自己的 OpenAI 兼容 API Key，LangGraph 负责主控分流和专家子图，知识问答默认聚焦中医经典、四诊、辨证论治和合成医案。
 
 > 本项目使用公开资料或合成数据演示，不代表真实医院生产接入；回答仅供健康知识参考，不构成诊断或治疗建议。
 
 ## 当前能力
 
-- **多 Agent 编排**：Supervisor 只做意图识别与 handoff，医疗知识、日期/计算分别进入独立子图。
-- **检索降级**：有 Embedding Key 且已构建索引时使用向量 + BM25；否则自动使用本地 BM25，不因缺少第二个 Key 停摆。
-- **安全护栏**：急症关键词在模型链路之前执行；工具调用失败时受控降级。
+- **中医教培主线**：默认只检索项目整理的 `data/tcm_demo.md`，覆盖阴阳、五行、四诊合参、辨证论治、医案拆解与 AI 边界。
+- **多 Agent 编排**：Supervisor 只做意图识别与 handoff，中医知识、日期/计算分别进入独立子图。
+- **检索降级**：中医聚焦演示默认使用本地 BM25；关闭 `TCM_FOCUS` 且有 Embedding Key 与索引时可使用向量 + BM25。
+- **安全护栏**：急症关键词在模型链路之前执行；个人症状、方药剂量和高风险内容转教师/执业医师审核。
 - **凭据隔离**：浏览器使用 `sessionStorage` 暂存 Key，经请求头发送；服务端只保存在进程内存，缓存与会话按不可逆配置指纹隔离。
 - **React 首页**：全屏轮播、自动播放与暂停、鼠标/触控切换、滚动显现、移动端布局、`prefers-reduced-motion` 适配。
 - **运行可观察**：问答响应展示通道与 Agent 路由轨迹。
@@ -37,7 +38,7 @@ npm run build
 python -m uvicorn app.server:app --host 127.0.0.1 --port 8001
 ```
 
-打开 `http://127.0.0.1:8001`，在右上角配置你的模型 Key。只配置模型 Key 即可运行，本地知识检索会走 BM25。
+打开 `http://127.0.0.1:8001`，在右上角配置你的模型 Key。只配置模型 Key 即可运行，中医教学资料检索会走本地 BM25。
 
 前端开发时可分别启动：
 
@@ -49,15 +50,15 @@ python -m uvicorn app.server:app --host 127.0.0.1 --port 8001
 npm run dev
 ```
 
-### 可选：启用混合检索
+### 可选：切换混合医疗库检索
 
-在页面设置中填写 Embedding Key，并先构建索引：
+如果要把旧版混合医疗问答库纳入检索，可在 `.env` 中将 `TCM_FOCUS=false`，在页面填写 Embedding Key，并先构建索引：
 
 ```powershell
 python scripts/build_index.py --ingest data
 ```
 
-FAQ 语义通道同样依赖 Embedding Key；缺失时会跳过 FAQ 语义匹配，继续走本地检索与 Agent。
+中医聚焦模式优先保护教学资料边界；正式接入教培业务前，建议由中医教师审核并替换 `data/tcm_demo.md` 中的演示摘要与医案。
 
 ## 验证
 
@@ -85,7 +86,7 @@ npm run verify:ui
 
 ```json
 {
-  "question": "高血压日常需要注意什么？",
+  "question": "如何理解中医的辨证论治？",
   "session_id": "demo-session",
   "provider": {
     "llm_base_url": "https://api.deepseek.com",
@@ -118,6 +119,8 @@ app/                    FastAPI、运行时隔离、LangGraph 与检索
 frontend/src/           React + TypeScript 源码
 static/                 Vite 生产构建产物，由 FastAPI 托管
 tests/                  无外部网络的安全契约测试
+data/tcm_demo.md        中医教培演示资料（默认检索范围）
+data/医疗知识库-cMedQA2.md 旧版混合社区问答（TCM_FOCUS=false 时可选）
 data/                   演示知识资料与可重建索引
 scripts/                索引构建、评测与 CLI 脚本
 ```

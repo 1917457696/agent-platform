@@ -19,7 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator  # noqa: E402
 from app.config import Config  # noqa: E402
 from app.service import ChatService  # noqa: E402
 
-app = FastAPI(title="多 Agent 医疗协理平台", version="2.0.0")
+app = FastAPI(title="岐序中医教培智能助教", version="2.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
@@ -131,6 +131,7 @@ def config_status():
             "llm_model": cfg.llm_model,
             "embedding_base_url": cfg.embedding_base_url,
             "embedding_model": cfg.embedding_model,
+            "knowledge_focus": "tcm" if cfg.tcm_focus else "mixed-medical",
         },
     }
 

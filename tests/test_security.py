@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from app.cache import Cache
 from app.config import Config
+from app.graph import _build_retrieval_tool
 from app import server
 
 
@@ -49,6 +50,15 @@ class ConfigSecurityTests(unittest.TestCase):
 
         self.assertEqual(cache.get_answer("同一个问题", "user-a"), "A")
         self.assertEqual(cache.get_answer("同一个问题", "user-b"), "B")
+
+    def test_default_retrieval_focuses_curated_tcm_demo_corpus(self):
+        cfg = Config(llm_api_key="dummy-key")
+        self.assertTrue(cfg.tcm_focus)
+        tool = _build_retrieval_tool(cfg)
+        result = tool.invoke({"query": "四诊合参在医案学习中怎么用"})
+
+        self.assertIn("四诊", result)
+        self.assertIn("tcm_demo.md", result)
 
 
 class ServerSecurityTests(unittest.TestCase):

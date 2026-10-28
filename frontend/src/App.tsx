@@ -63,29 +63,29 @@ const defaultCredentials: Credentials = {
 const slides = [
   {
     eyebrow: "01 / 分流",
-    kicker: "Supervisor · Worker",
-    title: "让每一个问题，\n先找到正确的人。",
-    body: "主控只做判断与交接，医疗知识、通用工具各自进入独立子图。职责清楚，轨迹可见。",
-    tag: "意图路由",
-    stat: "独立子图",
+    kicker: "CLASSIC · CASE · TEACHING",
+    title: "从经典出发，\n把中医思维讲清楚。",
+    body: "围绕阴阳、四诊、辨证论治与医案学习组织资料，让每一次提问都回到可核对的教学语境。",
+    tag: "中医教培",
+    stat: "经典为根",
     visual: "route",
   },
   {
     eyebrow: "02 / 证据",
-    kicker: "RAG · LOCAL FALLBACK",
-    title: "回答有来处，\n未知有边界。",
-    body: "优先使用向量与 BM25 混合检索；缺少 Embedding Key 或索引时，自动转入本地词法检索。",
-    tag: "知识检索",
-    stat: "双路降级",
+    kicker: "TCM CORPUS · RAG",
+    title: "回答有出处，\n辨证不越界。",
+    body: "优先检索经过整理的中医教学资料；缺少 Embedding Key 或索引时，仍可用本地词法检索演示。",
+    tag: "中医知识库",
+    stat: "来源可核",
     visual: "archive",
   },
   {
     eyebrow: "03 / 守门",
-    kicker: "SAFETY · HUMAN FIRST",
-    title: "医疗场景里，\n克制也是能力。",
-    body: "急症规则位于模型之前。高风险描述优先提示就医，系统始终声明：只提供知识参考。",
-    tag: "安全护栏",
-    stat: "规则前置",
+    kicker: "SAFETY · TEACHER REVIEW",
+    title: "先辨边界，\n再谈中医表达。",
+    body: "四诊信息不完整时只做教学解释；个人症状、方药剂量与高风险描述转人工医师审核。",
+    tag: "师承式审核",
+    stat: "人工优先",
     visual: "guard",
   },
 ];
@@ -94,37 +94,37 @@ const capabilityCards = [
   {
     icon: Route,
     index: "01",
-    title: "任务编排",
-    copy: "Supervisor 识别意图，通过 handoff 将问题交给职责单一的专家子图。",
-    detail: "路由轨迹可回看",
+    title: "经典知识库",
+    copy: "围绕阴阳、五行、四诊与辨证论治整理教学资料，回答优先回到中医语境。",
+    detail: "来源与章节可回看",
   },
   {
     icon: Database,
     index: "02",
-    title: "检索增强",
-    copy: "混合检索与本地 BM25 降级并存，让知识问答不因外部依赖缺失而停摆。",
-    detail: "回答附带来源",
+    title: "医案拆解",
+    copy: "把合成案例拆成主诉、时间线、缺失信息和课堂讨论点，不直接替学员下诊断。",
+    detail: "从案例回到方法",
   },
   {
     icon: ShieldCheck,
     index: "03",
-    title: "医疗护栏",
-    copy: "急症关键词先于 LLM 执行，工具异常时可控降级，并明确非诊断边界。",
-    detail: "安全优先于生成",
+    title: "辨证边界",
+    copy: "强调四诊合参与教师审核，拒绝单症状定证、个人处方、剂量和停换药建议。",
+    detail: "教学解释不代诊疗",
   },
   {
     icon: Fingerprint,
     index: "04",
-    title: "凭据隔离",
-    copy: "密钥只在当前标签页与服务端进程内存中短暂存在，运行时与缓存按指纹隔离。",
-    detail: "不落盘，不回显",
+    title: "师承式审核",
+    copy: "AI 负责资料整理、复习题和答疑草稿，涉及临床决策的内容保留教师与执业医师入口。",
+    detail: "人机协作可追溯",
   },
 ];
 
 const starterPrompts = [
-  "高血压患者日常需要注意什么？",
-  "帮我计算 125 × 0.8",
-  "持续胸痛并且呼吸困难怎么办？",
+  "如何理解中医的辨证论治？",
+  "四诊合参在医案学习中怎么用？",
+  "《黄帝内经》的阴阳观如何入门？",
 ];
 
 const sessionKey = "qixu.credentials.v1";
@@ -174,7 +174,7 @@ function App() {
       id: "welcome",
       role: "assistant",
       content:
-        "你好，我是岐序医疗协理助手。配置模型 API Key 后，可以向我提问健康知识、日期或计算问题。",
+        "你好，我是岐序中医教培智能助教。配置模型 API Key 后，可以学习中医经典、四诊与辨证论治，也可以让我帮你拆解合成医案。涉及个人诊疗时，我会提示转教师或执业医师审核。",
       channel: "system",
     },
   ]);
@@ -373,7 +373,7 @@ function App() {
           <span className="brand-mark" aria-hidden="true">岐</span>
           <span className="brand-copy">
             <strong>岐序</strong>
-            <small>MEDICAL AGENT</small>
+            <small>TCM EDUCATION AGENT</small>
           </span>
         </a>
 
@@ -381,7 +381,7 @@ function App() {
           <a href="#capabilities" onClick={() => setMenuOpen(false)}>能力底座</a>
           <a href="#workflow" onClick={() => setMenuOpen(false)}>运行路径</a>
           <button type="button" className="nav-workbench" onClick={scrollToWorkspace}>
-            进入工作台 <ChevronRight size={15} />
+            进入中医工作台 <ChevronRight size={15} />
           </button>
         </nav>
 
@@ -447,7 +447,7 @@ function App() {
                     <p>{slide.body}</p>
                     <div className="hero-cta-row">
                       <button type="button" className="primary-cta" onClick={scrollToWorkspace}>
-                        进入问答工作台 <ArrowRight size={18} />
+                        进入中医工作台 <ArrowRight size={18} />
                       </button>
                       <button type="button" className="text-cta" onClick={() => document.getElementById("workflow")?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth" })}>
                         查看运行路径 <ArrowDown size={16} />
@@ -560,8 +560,8 @@ function App() {
         <section id="workspace" className="workspace section-pad" ref={workspaceRef}>
           <div className="workspace-heading" data-reveal>
             <div>
-              <span className="section-number">问答工作台 · LIVE</span>
-              <h2>把问题放进来，<br />看系统如何接手。</h2>
+              <span className="section-number">中医教培工作台 · LIVE</span>
+              <h2>把经典与医案放进来，<br />看系统如何讲清楚。</h2>
             </div>
             <div className="workspace-status">
               <span className={hasKey ? "status-light is-ready" : "status-light"} />
@@ -577,7 +577,10 @@ function App() {
                 <span>RUNTIME</span><strong>{hasKey ? "READY" : "STANDBY"}</strong>
               </div>
               <div className="console-metric">
-                <span>RETRIEVAL</span><strong>{credentials.embeddingKey ? "HYBRID" : "LOCAL BM25"}</strong>
+                <span>KNOWLEDGE MODE</span><strong>TCM TEACHING</strong>
+              </div>
+              <div className="console-metric">
+                <span>RETRIEVAL</span><strong>{credentials.embeddingKey ? "RAG + BM25" : "LOCAL BM25"}</strong>
               </div>
               <div className="console-metric">
                 <span>SESSION</span><strong>ISOLATED</strong>
@@ -586,7 +589,7 @@ function App() {
               <button type="button" className="reset-button" onClick={resetConversation}>
                 <RefreshCw size={16} /> 重置本次会话
               </button>
-              <div className="medical-note"><Stethoscope size={18} /><p>仅提供健康知识参考，不构成诊断或治疗建议。</p></div>
+              <div className="medical-note"><Stethoscope size={18} /><p>以中医教培为主：只做经典、医案和方法讲解，不代替辨证诊疗。</p></div>
             </aside>
 
             <div className="chat-panel">
@@ -645,7 +648,7 @@ function App() {
                       void sendQuestion();
                     }
                   }}
-                  placeholder={hasKey ? "描述你的问题，Enter 发送…" : "先配置 API Key，再开始问答…"}
+                  placeholder={hasKey ? "提问经典、四诊或辨证论治，Enter 发送…" : "先配置 API Key，再开始学习…"}
                   rows={2}
                   maxLength={8000}
                 />
@@ -661,13 +664,13 @@ function App() {
         <section className="closing-statement section-pad" data-reveal>
           <div className="closing-mark">岐</div>
           <p>技术负责抵达，<br />边界负责守住。</p>
-          <span>QIXU MEDICAL AGENT · 2026</span>
+          <span>QIXU TCM EDUCATION AGENT · 2026</span>
         </section>
       </main>
 
       <footer>
-        <div className="brand compact"><span className="brand-mark">岐</span><span className="brand-copy"><strong>岐序</strong><small>MEDICAL AGENT</small></span></div>
-        <p>合成数据与公开知识演示 · 不接入真实医院生产系统</p>
+        <div className="brand compact"><span className="brand-mark">岐</span><span className="brand-copy"><strong>岐序</strong><small>TCM EDUCATION AGENT</small></span></div>
+        <p>中医教学资料与合成医案演示 · 不接入真实医疗生产系统</p>
         <a href="#top">回到顶部 <ArrowRight size={14} /></a>
       </footer>
 

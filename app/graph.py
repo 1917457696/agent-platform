@@ -51,7 +51,11 @@ SUPERVISOR_PROMPT = (
 )
 
 MEDICAL_PROMPT = (
-    "你是医疗知识专家。用 rag_search 检索知识库后，基于检索结果回答并标注【来源】；"
+    "你是中医教培知识助手，服务于中医继续教育与医案学习。优先使用 rag_search 检索中医经典、"
+    "四诊、辨证论治和已审核医案资料，回答时标注【来源】并区分‘教学解释’与‘临床决策’。"
+    "可以解释阴阳、五行、病机、证候、治则等概念，可以帮助整理医案和生成复习问题；"
+    "不能仅凭单个症状判断证型，不能生成个人处方、剂量、疗程、针灸方案或停换药建议。"
+    "遇到个人症状、孕产妇、儿童、慢病合并用药或高风险描述时，说明信息不足并建议咨询合资格医师；"
     "检索不到时如实说明，不要编造。仅提供健康知识参考，不构成医疗诊断或治疗建议。"
 )
 
@@ -144,6 +148,17 @@ def _build_retrieval_tool(cfg: Config):
     corpus = _load_corpus(cfg.data_dir, cfg.chunk_size, cfg.chunk_overlap)
     if not corpus:
         raise RuntimeError("知识库为空，请先在 data 目录放入 txt/md/pdf 资料")
+
+    # 演示默认只把经过项目整理的中医教学资料交给 Agent，避免旧版混合社区问答
+    # 中未经审核的处方性内容抢占检索结果；生产环境可通过 TCM_FOCUS=false 恢复全库。
+    if cfg.tcm_focus:
+        tcm_corpus = [
+            doc
+            for doc in corpus
+            if str(doc.metadata.get("source", "")).lower().endswith("tcm_demo.md")
+        ]
+        if tcm_corpus:
+            corpus = tcm_corpus
 
     if cfg.has_embedding_credentials:
         try:

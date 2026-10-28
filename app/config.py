@@ -80,6 +80,13 @@ class Config:
         self.chunk_size = int(_get_str("CHUNK_SIZE", "500"))
         self.chunk_overlap = int(_get_str("CHUNK_OVERLAP", "50"))
         self.top_k = int(_get_str("TOP_K", "5"))
+        # 默认以中医教培演示资料为主；设为 false 可恢复混合医疗知识库。
+        self.tcm_focus = _get_str("TCM_FOCUS", "true").lower() not in {
+            "0",
+            "false",
+            "no",
+            "off",
+        }
         # Agent 平台
         self.max_steps = int(_get_str("MAX_STEPS", "6"))
         self.recursion_limit = int(_get_str("RECURSION_LIMIT", "40"))
@@ -102,6 +109,7 @@ class Config:
                 self.embedding_provider,
                 self.embedding_base_url,
                 self.embedding_model,
+                str(self.tcm_focus),
                 hashlib.sha256(self.embedding_api_key.encode("utf-8")).hexdigest(),
             ]
         )
