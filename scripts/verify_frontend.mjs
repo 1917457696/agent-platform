@@ -120,7 +120,7 @@ try {
   await desktopPage.locator("#workspace").scrollIntoViewIfNeeded();
   assert(await desktopPage.locator(".conversation-list").isVisible(), "桌面端对话记录侧栏不可见");
   await desktopPage.getByRole("button", { name: "开始现场 Demo" }).click();
-  await desktopPage.getByText("学习反馈").waitFor();
+  await desktopPage.getByText("陪练阶段 · 学习反馈", { exact: true }).waitFor();
   await desktopPage.getByText("teacher_review_required").waitFor();
   assert(await desktopPage.getByText("本地陪练演示完成：追问、来源、反馈和人工审核均已展示。").isVisible(), "本地陪练 Demo 未完成");
   await desktopPage.getByRole("button", { name: "进入病例训练" }).click();
@@ -172,6 +172,12 @@ try {
   await workflowStep.click();
   assert(await desktopPage.locator(".workflow-step-detail").first().isVisible(), "运行路径详情未展开");
   assert(await desktopPage.getByText("本次运行 · 实时记录").isVisible(), "运行 Trace 面板不可见");
+  await desktopPage.locator("#explainer").scrollIntoViewIfNeeded();
+  const plainCard = desktopPage.locator(".plain-card").first();
+  await plainCard.locator("summary").click();
+  assert(await plainCard.locator(".plain-card-body").isVisible(), "非技术说明模块未展开");
+  await desktopPage.locator("#course-center").scrollIntoViewIfNeeded();
+  assert(await desktopPage.locator(".course-product-card").count() === 4, "课程 AI 产品模块不完整");
 
   await desktopPage.screenshot({
     path: path.join(evidenceDir, "desktop-home.png"),

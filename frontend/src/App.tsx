@@ -208,6 +208,22 @@ const workflowSteps: WorkflowStep[] = [
   { number: "04", title: "专家执行", copy: "调用检索或工具，返回答案与路由轨迹。", detail: "医疗子图负责 RAG 和教学回答，通用工具子图负责日期与计算；最终结果附带耗时、Token 和节点路径。", Icon: Bot },
 ];
 
+const plainLanguageCards = [
+  { number: "01", title: "AI 工具研发", question: "不是只会聊天，而是把重复工作做成工具。", answer: "先找到教学、答疑或督学中的真实痛点，再把模型、知识库和业务流程组合成一个能被同事和学员使用的产品。", example: "例如：把班主任每天重复回答的课程问题，变成带出处的智能答疑。" },
+  { number: "02", title: "RAG 知识库", question: "让 AI 先查资料，再回答问题。", answer: "系统先从指定课程、医案和教材中检索相关内容，再要求模型基于这些资料组织答案，减少脱离课程乱答。", example: "例如：回答经方问题时，能够指出来自哪门课、哪一章节。" },
+  { number: "03", title: "Agent / 工作流", question: "让 AI 像一个会分工的助教团队。", answer: "主控模块先判断问题类型，再交给检索、计算、安全审核或学习反馈等不同节点处理。每一步都有职责，出错也更容易定位。", example: "例如：先判断是否是急症，再决定是查课程资料还是转教师审核。" },
+  { number: "04", title: "Embedding 向量检索", question: "帮助系统理解不同说法可能表达同一个意思。", answer: "Embedding 会把文字转换成可比较的数字表示，让“发烧”和“体温升高”这类相近表达更容易找到相关资料。它负责找资料，不负责最终回答。", example: "通常和关键词检索一起使用，形成向量 + BM25 的混合检索。" },
+  { number: "05", title: "从 0 到 1", question: "从一个想法走到真实用户能用。", answer: "包括场景调研、需求定义、技术选型、开发、部署、试用、数据反馈和迭代，而不是只写一个页面或调一次 API。", example: "本项目的路径：病例训练 → 主动问诊 → 初步判断 → 评分复盘 → 学习建议。" },
+  { number: "06", title: "接入 App", question: "把 AI 能力放进已有产品，而不是推倒重做。", answer: "AI 服务通过 API、SSE 等接口提供能力，现有 App 负责登录、页面和用户体验；双方用清晰的接口契约协作。", example: "这样可以先用 Web/H5 验证价值，再逐步接入正式 App。" },
+];
+
+const courseProductCards = [
+  { number: "01", title: "AI 课程讲解", subtitle: "把老师的课变成可互动的学习过程", body: "学员可以按章节提问，AI 用课程资料解释概念、换一种说法复述，并指出对应章节。", action: "先学懂一节课" },
+  { number: "02", title: "章节练习与小测", subtitle: "学完不是结束，而是马上检验理解", body: "根据课程重点生成选择题、简答题和复习卡，记录错题并给出下一步复习建议。", action: "生成课后练习" },
+  { number: "03", title: "医案与临床思维训练", subtitle: "把知识放进病例里主动思考", body: "AI 扮演患者，学员主动问诊、提交判断，系统再按关键问题覆盖和风险意识进行复盘。", action: "进入医案陪练" },
+  { number: "04", title: "学员反馈与教师协作", subtitle: "让老师看到学员卡在哪里", body: "汇总高频问题、薄弱章节和 AI 反馈草稿，教师审核后再发给学员，形成持续迭代。", action: "查看学习反馈" },
+];
+
 const starterPrompts = [
   "如何理解中医的辨证论治？",
   "四诊合参在医案学习中怎么用？",
@@ -303,11 +319,11 @@ const trainingSuggestedQuestions: Record<string, string[]> = {
 };
 
 const practiceDemo = {
-  casePrompt: "我在换季后咳嗽两天，先从这个医案开始陪练。",
-  followUp: "补充信息：没有明显发热，咽部发痒，偶有白痰，睡眠和饮食基本正常；舌象和脉象暂时无法在线可靠获得。",
+  casePrompt: "我正在学习《四诊合参与辨证论治》，能先帮我梳理这一章的核心方法吗？",
+  followUp: "我想用一个换季咳嗽医案练习：没有明显发热，咽部发痒，偶有白痰，睡眠和饮食基本正常。",
   safetyPrompt: "那你直接告诉我应该用什么方、多少剂量？",
-  inquiry: "这是一个合成医案，我们先不急着下结论。为了训练辨证思路，我会先补齐病程、寒热、汗出、痰、饮食睡眠等信息。当前还缺少舌象、脉象等不能仅靠文字可靠获得的四诊资料。",
-  feedback: "基于《四诊合参与辨证论治》课程资料：\n\n学习反馈\n1. 做得好的地方：你先提供了病程和主要症状，具备继续分析的基础。\n2. 需要补齐：咽痒、白痰只能作为讨论线索，不能单独定为某个证；舌象、脉象和整体状态仍需教师结合。\n3. 下一步练习：请分别说明“症状信息”“四诊依据”“仍需核实的信息”，再比较两种可能的病机解释。\n\n推荐复习：四诊合参 → 辨证论治的证据链 → 外感咳嗽医案。\n\n来源：中医教培演示资料 · 四诊合参、辨证论治与合成医案章节。",
+  inquiry: "课程助教先用本章资料讲清方法，再把知识放进医案练习。辨证不能只看一个症状，需要按病程、寒热、汗出、痰、饮食睡眠等维度收集信息，并把症状、四诊依据和病机解释分开。",
+  feedback: "基于《四诊合参与辨证论治》课程资料：\n\n本节学习反馈\n1. 课程要点：辨证是从四诊信息中建立证据链，不是看到一个症状就直接贴标签。\n2. 医案练习：你已经给出病程和主要症状，但咽痒、白痰只能作为讨论线索；舌象、脉象和整体状态还需要教师结合。\n3. 课后小测：请分别写出“症状信息”“四诊依据”“仍需核实的信息”，再比较两种可能的病机解释。\n\n推荐复习路径：四诊合参 → 辨证论治证据链 → 外感咳嗽医案。\n\n来源：中医教培演示资料 · 四诊合参、辨证论治与合成医案章节。",
   safety: "这一步我不能直接给出个人处方或剂量。课程 AI 助教可以解释相关治则、整理老师医案并生成练习，但具体方药需要由教师或执业中医师结合完整四诊信息审核。\n\n已转人工审核：teacher_review_required\n教学边界：不把合成医案或单个症状直接迁移到个人诊疗。",
 };
 
@@ -888,6 +904,7 @@ function App() {
 
         <nav className={menuOpen ? "nav-links is-open" : "nav-links"} aria-label="主导航">
           <a href="#capabilities" onClick={() => setMenuOpen(false)}>能力底座</a>
+          <a href="#explainer" onClick={() => setMenuOpen(false)}>技术说明</a>
           <a href="#workflow" onClick={() => setMenuOpen(false)}>运行路径</a>
           <button type="button" className="nav-workbench" onClick={scrollToWorkspace}>
             进入中医工作台 <ChevronRight size={15} />
@@ -1060,6 +1077,46 @@ function App() {
           )}
         </section>
 
+        <section id="explainer" className="plain-explainer section-pad">
+          <div className="section-heading" data-reveal>
+            <div>
+              <span className="section-number">给业务同事看的说明 · 06</span>
+              <h2>技术名词不重要，<br />先看它解决什么问题。</h2>
+            </div>
+            <p>如果你不熟悉 AI 技术，可以从下面的“问题—作用—例子”理解这个项目。每一项都对应一个真实业务结果。</p>
+          </div>
+          <div className="plain-card-grid">
+            {plainLanguageCards.map((card) => (
+              <details className="plain-card" key={card.number} data-reveal>
+                <summary><span className="plain-card-number">{card.number}</span><div><h3>{card.title}</h3><p>{card.question}</p></div><ChevronRight size={17} /></summary>
+                <div className="plain-card-body"><p>{card.answer}</p><small>{card.example}</small></div>
+              </details>
+            ))}
+          </div>
+        </section>
+
+        <section id="course-center" className="course-center section-pad">
+          <div className="section-heading" data-reveal>
+            <div>
+              <span className="section-number">课程产品化 · 04 个环节</span>
+              <h2>把一门课，<br />变成一位会陪学的助教。</h2>
+            </div>
+            <p>问诊训练只是其中一课。真正的 AI 教培产品，要覆盖“学懂—练习—反馈—复习”的完整学习路径。</p>
+          </div>
+          <div className="course-product-grid">
+            {courseProductCards.map((card, index) => (
+              <article className={`course-product-card ${index === 2 ? "is-featured" : ""}`} key={card.number} data-reveal style={{ "--delay": `${index * 80}ms` } as React.CSSProperties}>
+                <span className="course-product-number">{card.number}</span>
+                <h3>{card.title}</h3>
+                <strong>{card.subtitle}</strong>
+                <p>{card.body}</p>
+                <span className="course-product-action">{card.action} <ChevronRight size={14} /></span>
+              </article>
+            ))}
+          </div>
+          <div className="course-product-note" data-reveal><span>一个完整的课程 AI 产品</span><div><b>课程资料</b><i>→</i><b>AI 讲解</b><i>→</i><b>医案练习</b><i>→</i><b>学习反馈</b><i>→</i><b>教师审核</b></div></div>
+        </section>
+
         <section id="workflow" className="workflow section-pad">
           <div className="workflow-grid">
             <div className="workflow-intro" data-reveal>
@@ -1112,8 +1169,8 @@ function App() {
               <div className="console-brand"><Activity size={18} /><span>协理控制台</span></div>
               <div className="demo-panel">
                 <div className="demo-panel-topline"><span>现场演示</span><span className="demo-dot" /></div>
-                <strong>中医课程陪练</strong>
-                <p>无需 API Key，先跑通一条现场演示链路。</p>
+                <strong>课程 AI 助教</strong>
+                <p>先体验“讲解—练习—医案—反馈”的一条课程学习链路。</p>
                 <button type="button" className="demo-button" onClick={() => void runPracticeDemo()} disabled={isSending}>
                   <Sparkles size={14} /> {isSending ? "演示进行中…" : "开始现场 Demo"}
                 </button>
