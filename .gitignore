@@ -12,3 +12,6 @@ __pycache__/
 .idea/
 .vscode/
 .DS_Store
+
+# 本地隔离工作树
+.worktrees/
