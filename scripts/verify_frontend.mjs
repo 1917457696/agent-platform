@@ -171,6 +171,8 @@ try {
   const workflowStep = desktopPage.locator(".workflow-step-button").first();
   await workflowStep.click();
   assert(await desktopPage.locator(".workflow-step-detail").first().isVisible(), "运行路径详情未展开");
+  await desktopPage.locator(".workflow-step-button").nth(1).click();
+  assert(await desktopPage.locator(".workflow-step-detail").count() >= 2, "运行路径详情未保持多节点展开");
   assert(await desktopPage.getByText("本次运行 · 实时记录").isVisible(), "运行 Trace 面板不可见");
   await desktopPage.locator("#explainer").scrollIntoViewIfNeeded();
   const plainCard = desktopPage.locator(".plain-card").first();
@@ -178,6 +180,9 @@ try {
   assert(await plainCard.locator(".plain-card-body").isVisible(), "非技术说明模块未展开");
   await desktopPage.locator("#course-center").scrollIntoViewIfNeeded();
   assert(await desktopPage.locator(".course-product-card").count() === 4, "课程 AI 产品模块不完整");
+  await desktopPage.locator(".course-product-card").nth(1).click();
+  assert(await desktopPage.locator(".course-product-card").nth(1).getAttribute("aria-pressed") === "true", "课程产品卡片无法保持选中状态");
+  assert(await desktopPage.locator(".course-ai-strategy-card").count() === 3, "AI 教培产品分析模块不完整");
 
   await desktopPage.screenshot({
     path: path.join(evidenceDir, "desktop-home.png"),

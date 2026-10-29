@@ -218,10 +218,16 @@ const plainLanguageCards = [
 ];
 
 const courseProductCards = [
-  { number: "01", title: "AI 课程讲解", subtitle: "把老师的课变成可互动的学习过程", body: "学员可以按章节提问，AI 用课程资料解释概念、换一种说法复述，并指出对应章节。", action: "先学懂一节课" },
-  { number: "02", title: "章节练习与小测", subtitle: "学完不是结束，而是马上检验理解", body: "根据课程重点生成选择题、简答题和复习卡，记录错题并给出下一步复习建议。", action: "生成课后练习" },
-  { number: "03", title: "医案与临床思维训练", subtitle: "把知识放进病例里主动思考", body: "AI 扮演患者，学员主动问诊、提交判断，系统再按关键问题覆盖和风险意识进行复盘。", action: "进入医案陪练" },
-  { number: "04", title: "学员反馈与教师协作", subtitle: "让老师看到学员卡在哪里", body: "汇总高频问题、薄弱章节和 AI 反馈草稿，教师审核后再发给学员，形成持续迭代。", action: "查看学习反馈" },
+  { number: "01", title: "AI 课程讲解", subtitle: "把老师的课变成可互动的学习过程", body: "学员可以按章节提问，AI 用课程资料解释概念、换一种说法复述，并指出对应章节。", action: "先学懂一节课", detail: "先把课程视频、讲义和老师 FAQ 拆成章节知识点、概念解释、典型例题和常见误区。学员提问时，AI 先检索这些资料，再用适合当前学员的方式讲解。" },
+  { number: "02", title: "章节练习与小测", subtitle: "学完不是结束，而是马上检验理解", body: "根据课程重点生成选择题、简答题和复习卡，记录错题并给出下一步复习建议。", action: "生成课后练习", detail: "AI 根据本章学习目标生成题目和解析，记录学员错题与犹豫点；老师可以审核题目，再把错题自动编入下一次复习。" },
+  { number: "03", title: "医案与临床思维训练", subtitle: "把知识放进病例里主动思考", body: "AI 扮演患者，学员主动问诊、提交判断，系统再按关键问题覆盖和风险意识进行复盘。", action: "进入医案陪练", detail: "这是课程中的临床思维训练课，不是在线问诊。AI 按合成医案逐步透露信息，学员主动提问、提交依据，系统最后生成过程反馈。" },
+  { number: "04", title: "学员反馈与教师协作", subtitle: "让老师看到学员卡在哪里", body: "汇总高频问题、薄弱章节和 AI 反馈草稿，教师审核后再发给学员，形成持续迭代。", action: "查看学习反馈", detail: "教师端看到高频问题、章节薄弱点、错题和 AI 反馈草稿；高风险内容必须人工审核，审核后的结果还能反哺 FAQ、题库和评测集。" },
+];
+
+const courseAIStrategy = [
+  { number: "A", title: "内容重构", body: "把视频、讲义和老师经验拆成章节目标、知识点、例题、误区和出处，形成可检索、可复用的课程知识单元。" },
+  { number: "B", title: "互动教学", body: "AI 不只回答问题，而是根据学员的学习阶段讲解、追问、出题、给 Hint；学员可以选择课程、章节和训练难度。" },
+  { number: "C", title: "效果闭环", body: "记录学员的提问、错题、医案表现和教师审核结果，生成学习画像，再反过来优化课程、题库和督学策略。" },
 ];
 
 const starterPrompts = [
@@ -476,7 +482,8 @@ function App() {
   const [trainingAsked, setTrainingAsked] = useState<string[]>([]);
   const [trainingReport, setTrainingReport] = useState<TrainingReport | null>(null);
   const [activeCapability, setActiveCapability] = useState<CapabilityDetail | null>(null);
-  const [activeWorkflowStep, setActiveWorkflowStep] = useState(0);
+  const [expandedWorkflowSteps, setExpandedWorkflowSteps] = useState<Set<number>>(() => new Set());
+  const [selectedCourseProduct, setSelectedCourseProduct] = useState(0);
   const [lastTrace, setLastTrace] = useState<Observability | null>(null);
   const [tracePhase, setTracePhase] = useState("等待下一次运行");
   const pointerStart = useRef<number | null>(null);
@@ -1105,16 +1112,26 @@ function App() {
           </div>
           <div className="course-product-grid">
             {courseProductCards.map((card, index) => (
-              <article className={`course-product-card ${index === 2 ? "is-featured" : ""}`} key={card.number} data-reveal style={{ "--delay": `${index * 80}ms` } as React.CSSProperties}>
+              <button type="button" className={`course-product-card ${selectedCourseProduct === index ? "is-selected" : ""}`} key={card.number} data-reveal style={{ "--delay": `${index * 80}ms` } as React.CSSProperties} onClick={() => setSelectedCourseProduct(index)} aria-pressed={selectedCourseProduct === index}>
                 <span className="course-product-number">{card.number}</span>
                 <h3>{card.title}</h3>
                 <strong>{card.subtitle}</strong>
                 <p>{card.body}</p>
                 <span className="course-product-action">{card.action} <ChevronRight size={14} /></span>
-              </article>
+              </button>
             ))}
           </div>
+          <div className="course-product-detail" data-reveal>
+            <div><span className="section-number">当前选择 · {courseProductCards[selectedCourseProduct].number}</span><h3>{courseProductCards[selectedCourseProduct].title}</h3></div>
+            <p>{courseProductCards[selectedCourseProduct].detail}</p>
+          </div>
           <div className="course-product-note" data-reveal><span>一个完整的课程 AI 产品</span><div><b>课程资料</b><i>→</i><b>AI 讲解</b><i>→</i><b>医案练习</b><i>→</i><b>学习反馈</b><i>→</i><b>教师审核</b></div></div>
+          <div className="course-ai-strategy" data-reveal>
+            <div className="course-ai-strategy-heading"><span className="section-number">产品分析 · 不是把课程丢给模型</span><h3>真正的 AI 教培，改造的是学习过程。</h3></div>
+            <div className="course-ai-strategy-grid">
+              {courseAIStrategy.map((item) => <div className="course-ai-strategy-card" key={item.number}><span>{item.number}</span><h4>{item.title}</h4><p>{item.body}</p></div>)}
+            </div>
+          </div>
         </section>
 
         <section id="workflow" className="workflow section-pad">
@@ -1128,13 +1145,14 @@ function App() {
               <ol className="workflow-steps">
                 {workflowSteps.map((step, index) => {
                   const StepIcon = step.Icon;
+                  const expanded = expandedWorkflowSteps.has(index);
                   return (
-                    <li key={step.number} className={activeWorkflowStep === index ? "is-active" : ""} data-reveal style={{ "--delay": `${index * 90}ms` } as React.CSSProperties}>
-                      <button type="button" className="workflow-step-button" onClick={() => setActiveWorkflowStep(index)} aria-expanded={activeWorkflowStep === index}>
+                    <li key={step.number} className={expanded ? "is-active" : ""} data-reveal style={{ "--delay": `${index * 90}ms` } as React.CSSProperties}>
+                      <button type="button" className="workflow-step-button" onClick={() => setExpandedWorkflowSteps((current) => { const next = new Set(current); if (next.has(index)) next.delete(index); else next.add(index); return next; })} aria-expanded={expanded}>
                         <span className="step-number">{step.number}</span><StepIcon size={21} />
                         <div><h3>{step.title}</h3><p>{step.copy}</p></div><ChevronRight size={16} />
                       </button>
-                      {activeWorkflowStep === index && <div className="workflow-step-detail">{step.detail}</div>}
+                      {expanded && <div className="workflow-step-detail">{step.detail}</div>}
                     </li>
                   );
                 })}
