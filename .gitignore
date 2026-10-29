@@ -17,6 +17,7 @@ frontend/dist/
 coverage/
 artifacts/
 output/~$*
+output/huayi-world-tcm-ai-education-platform.pptx
 
 # 本地隔离工作树
 .worktrees/
