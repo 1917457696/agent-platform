@@ -110,7 +110,7 @@ prs = Presentation()
 prs.slide_width = Inches(W); prs.slide_height = Inches(H)
 
 # 1 cover
-slide = add_slide(prs, dark=True, kicker="面试方案 · 2026.10")
+slide = add_slide(prs, dark=True, kicker="面试方案 · 2026.10.29")
 text(slide, "中医课程\nAI 教学平台", .78, 1.18, 6.4, 1.75, 38, WHITE, bold=True)
 text(slide, "从课程内容，到会讲解、会出题、会陪练、会反馈的学习服务", .82, 3.22, 6.7, .48, 15, "C7D6CC")
 box(slide, 8.55, 1.18, 3.7, 3.8, fill=GREEN_2, line="356B5C", radius=True)
@@ -247,8 +247,46 @@ for i, (num, head, body) in enumerate(demo):
 box(slide, .8, 5.76, 11.75, .56, fill="F1E8D5", line="E4D7BD", radius=True)
 text(slide, "现场口径：当前使用合成资料和 Mock 外部系统，展示的是产品流程与工程能力，不冒充正式生产医疗系统。", 1.05, 5.95, 11.2, .22, 11, RED, bold=True, align=PP_ALIGN.CENTER)
 
-# 11 role boundary
-slide = add_slide(prs, dark=True, kicker="10 · 岗位边界")
+# 10 requirement clarification
+slide = add_slide(prs, dark=True, kicker="10 · 需求不足时")
+title(slide, "需求还不完整时，先把方向变成可验证的 MVP。", "不假设全量课程、完整 App 和学习效果已经定义，先补齐最小决策信息。", dark=True)
+requirement_rows = [
+    ("用户", "先服务谁？", "访谈学员、老师和班主任，按频次与耗时选场景"),
+    ("内容", "哪些资料能用？", "先用一门授权课程和合成医案建立边界"),
+    ("指标", "什么叫有效？", "先记录答疑时间、练习完成、教师采纳等基线"),
+    ("渠道", "是否马上做 App？", "先用 Web/H5 + API 验证闭环，再排接入优先级"),
+]
+for i, (label, question, answer) in enumerate(requirement_rows):
+    y = 2.92 + i * .77
+    box(slide, .85, y, 1.25, .55, fill=RED, line=RED, radius=True)
+    text(slide, label, 1.0, y+.17, .95, .2, 12, WHITE, bold=True, align=PP_ALIGN.CENTER)
+    text(slide, question, 2.42, y+.06, 2.0, .24, 13, GOLD, bold=True)
+    text(slide, answer, 4.55, y+.06, 7.2, .32, 11, "C7D6CC")
+line(slide, .85, 6.15, 12.45, 6.15, "477A69", .8)
+text(slide, "默认首期：一个课程主题 + 章节练习 + 一套医案 + 训练反馈 + 教师审核。两周内先验证是否值得扩展。", .86, 6.3, 11.6, .25, 12, GOLD, bold=True)
+
+# 11 boundary and solution
+slide = add_slide(prs, kicker="11 · 边界与替代")
+title(slide, "不能直接做的能力，也要给出解决路径。", "把“当前缺口、Demo 替代、正式方案”分开说清楚，避免把概念当成已交付功能。")
+headers = [("当前不能直接做", .82, 2.75), ("原因", 3.65, 2.35), ("Demo 替代", 6.12, 2.55), ("正式方案", 8.82, 3.5)]
+for head, x, w in headers:
+    text(slide, head, x, 2.72, w, .22, 10, RED, bold=True)
+line(slide, .82, 3.08, 12.45, 3.08, LINE, .8)
+boundaries = [
+    ("真实课程 AI 导师", "缺课程原文/授权", "固定演示资料", "上传解析、知识单元审核"),
+    ("长期能力画像", "缺训练记录/量表", "单次训练报告", "服务端记录 + 教师校准"),
+    ("正式 App", "缺登录/接口契约", "Web/H5 + API/SSE", "账号、课程、消息、报告接口"),
+    ("自动处方诊疗", "安全与合规边界", "安全闸 + 人工审核", "教学解释与医师审核流程"),
+]
+for i, row in enumerate(boundaries):
+    y = 3.28 + i * .68
+    for (value, (_, x, w)) in zip(row, headers):
+        text(slide, value, x, y, w, .38, 10, INK if i % 2 == 0 else MUTED, bold=(x == .82))
+    line(slide, .82, y+.48, 12.45, y+.48, LINE, .55)
+text(slide, "原则：缺真实资料就先做授权演示；缺历史数据就先做单次报告；缺接口就先验证 Web 闭环；高风险内容始终人工优先。", .84, 6.2, 11.45, .28, 11, RED, bold=True)
+
+# 12 role boundary
+slide = add_slide(prs, dark=True, kicker="12 · 岗位边界")
 title(slide, "我可以承担 0→1，但不会盲目承诺单人包办。", "先对结果负责，再把需要协作的边界讲清楚，反而更适合早期项目。", dark=True)
 box(slide, .82, 3.0, 5.65, 2.65, fill=GREEN_2, line="477A69", radius=True)
 text(slide, "我可以独立负责", 1.12, 3.35, 2.6, .3, 18, GOLD, bold=True)
@@ -258,8 +296,8 @@ text(slide, "正式上线需要协作", 7.13, 3.35, 2.8, .3, 18, GOLD, bold=True
 text(slide, "App 正式接入与账号体系\n数据治理、运维、成本与安全\n中医教师审核与课程版权\n规模化并发和产品运营", 7.13, 3.92, 4.7, 1.25, 12, "C7D6CC")
 text(slide, "岗位沟通：如果职责是 AI 方向从 0 到 1，我期望转正 25K 左右；具体可结合首期目标、资源和绩效机制沟通。", .88, 6.1, 11.45, .3, 12, GOLD, bold=True)
 
-# 12 close
-slide = add_slide(prs, kicker="11 · 结论")
+# 13 close
+slide = add_slide(prs, kicker="13 · 结论")
 text(slide, "先做一门课，\n再做一套学习系统。", .82, 1.18, 7.3, 1.45, 34, INK, bold=True)
 text(slide, "对华医世界，我建议首个产品从“课程 AI 助教 + 一套医案陪练”开始：\n范围可控、能快速上线、能被真实学员使用，也能为后续 App 产品化留下接口。", .84, 3.1, 6.7, .95, 14, MUTED)
 box(slide, 8.35, 1.35, 3.9, 3.7, fill=GREEN, line=GREEN, radius=True)
