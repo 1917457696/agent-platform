@@ -1113,7 +1113,7 @@ function App() {
           </div>
           <div className="course-product-grid">
             {courseProductCards.map((card, index) => (
-              <button type="button" className={`course-product-card ${selectedCourseProduct === index ? "is-selected" : ""}`} key={card.number} data-reveal style={{ "--delay": `${index * 80}ms` } as React.CSSProperties} onClick={() => { setSelectedCourseProduct(index); setViewedCourseProducts((current) => current.includes(index) ? current : [...current, index]); }} aria-pressed={selectedCourseProduct === index}>
+              <button type="button" className={`course-product-card ${selectedCourseProduct === index ? "is-selected" : ""}`} key={card.number} style={{ "--delay": `${index * 80}ms` } as React.CSSProperties} onClick={() => { setSelectedCourseProduct(index); setViewedCourseProducts((current) => current.includes(index) ? current : [...current, index]); }} aria-pressed={selectedCourseProduct === index}>
                 <span className="course-product-number">{card.number}</span>
                 <h3>{card.title}</h3>
                 <strong>{card.subtitle}</strong>
@@ -1122,7 +1122,7 @@ function App() {
               </button>
             ))}
           </div>
-          <div className="course-product-details" data-reveal>
+          <div className="course-product-details">
             {viewedCourseProducts.map((index) => <div className="course-product-detail" key={courseProductCards[index].number}>
               <div><span className="section-number">已查看 · {courseProductCards[index].number}</span><h3>{courseProductCards[index].title}</h3></div>
               <p>{courseProductCards[index].detail}</p>
@@ -1154,7 +1154,7 @@ function App() {
                   const StepIcon = step.Icon;
                   const expanded = expandedWorkflowSteps.has(index);
                   return (
-                    <li key={step.number} className={expanded ? "is-active" : ""} data-reveal style={{ "--delay": `${index * 90}ms` } as React.CSSProperties}>
+                    <li key={step.number} className={expanded ? "is-active" : ""} style={{ "--delay": `${index * 90}ms` } as React.CSSProperties}>
                       <button type="button" className="workflow-step-button" onClick={() => setExpandedWorkflowSteps((current) => new Set(current).add(index))} aria-expanded={expanded}>
                         <span className="step-number">{step.number}</span><StepIcon size={21} />
                         <div><h3>{step.title}</h3><p>{step.copy}</p></div><ChevronRight size={16} />
