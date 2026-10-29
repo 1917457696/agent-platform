@@ -484,6 +484,7 @@ function App() {
   const [activeCapability, setActiveCapability] = useState<CapabilityDetail | null>(null);
   const [expandedWorkflowSteps, setExpandedWorkflowSteps] = useState<Set<number>>(() => new Set());
   const [selectedCourseProduct, setSelectedCourseProduct] = useState(0);
+  const [viewedCourseProducts, setViewedCourseProducts] = useState<number[]>([0]);
   const [lastTrace, setLastTrace] = useState<Observability | null>(null);
   const [tracePhase, setTracePhase] = useState("等待下一次运行");
   const pointerStart = useRef<number | null>(null);
@@ -1112,7 +1113,7 @@ function App() {
           </div>
           <div className="course-product-grid">
             {courseProductCards.map((card, index) => (
-              <button type="button" className={`course-product-card ${selectedCourseProduct === index ? "is-selected" : ""}`} key={card.number} data-reveal style={{ "--delay": `${index * 80}ms` } as React.CSSProperties} onClick={() => setSelectedCourseProduct(index)} aria-pressed={selectedCourseProduct === index}>
+              <button type="button" className={`course-product-card ${selectedCourseProduct === index ? "is-selected" : ""}`} key={card.number} data-reveal style={{ "--delay": `${index * 80}ms` } as React.CSSProperties} onClick={() => { setSelectedCourseProduct(index); setViewedCourseProducts((current) => current.includes(index) ? current : [...current, index]); }} aria-pressed={selectedCourseProduct === index}>
                 <span className="course-product-number">{card.number}</span>
                 <h3>{card.title}</h3>
                 <strong>{card.subtitle}</strong>
@@ -1121,11 +1122,17 @@ function App() {
               </button>
             ))}
           </div>
-          <div className="course-product-detail" data-reveal>
-            <div><span className="section-number">当前选择 · {courseProductCards[selectedCourseProduct].number}</span><h3>{courseProductCards[selectedCourseProduct].title}</h3></div>
-            <p>{courseProductCards[selectedCourseProduct].detail}</p>
+          <div className="course-product-details" data-reveal>
+            {viewedCourseProducts.map((index) => <div className="course-product-detail" key={courseProductCards[index].number}>
+              <div><span className="section-number">已查看 · {courseProductCards[index].number}</span><h3>{courseProductCards[index].title}</h3></div>
+              <p>{courseProductCards[index].detail}</p>
+            </div>)}
           </div>
           <div className="course-product-note" data-reveal><span>一个完整的课程 AI 产品</span><div><b>课程资料</b><i>→</i><b>AI 讲解</b><i>→</i><b>医案练习</b><i>→</i><b>学习反馈</b><i>→</i><b>教师审核</b></div></div>
+          <div className="course-ai-usecase" data-reveal>
+            <div><span className="section-number">一个具体例子 · 《四诊合参》</span><h3>把“看课”改成“会学习”。</h3></div>
+            <div className="course-ai-usecase-flow"><span><b>原课程</b>看视频、记笔记、群里提问</span><i>→</i><span><b>AI 课程</b>章节讲解、追问、小测</span><i>→</i><span><b>学习结果</b>医案练习、错题复习、教师反馈</span></div>
+          </div>
           <div className="course-ai-strategy" data-reveal>
             <div className="course-ai-strategy-heading"><span className="section-number">产品分析 · 不是把课程丢给模型</span><h3>真正的 AI 教培，改造的是学习过程。</h3></div>
             <div className="course-ai-strategy-grid">
@@ -1148,7 +1155,7 @@ function App() {
                   const expanded = expandedWorkflowSteps.has(index);
                   return (
                     <li key={step.number} className={expanded ? "is-active" : ""} data-reveal style={{ "--delay": `${index * 90}ms` } as React.CSSProperties}>
-                      <button type="button" className="workflow-step-button" onClick={() => setExpandedWorkflowSteps((current) => { const next = new Set(current); if (next.has(index)) next.delete(index); else next.add(index); return next; })} aria-expanded={expanded}>
+                      <button type="button" className="workflow-step-button" onClick={() => setExpandedWorkflowSteps((current) => new Set(current).add(index))} aria-expanded={expanded}>
                         <span className="step-number">{step.number}</span><StepIcon size={21} />
                         <div><h3>{step.title}</h3><p>{step.copy}</p></div><ChevronRight size={16} />
                       </button>

@@ -182,7 +182,9 @@ try {
   assert(await desktopPage.locator(".course-product-card").count() === 4, "课程 AI 产品模块不完整");
   await desktopPage.locator(".course-product-card").nth(1).click();
   assert(await desktopPage.locator(".course-product-card").nth(1).getAttribute("aria-pressed") === "true", "课程产品卡片无法保持选中状态");
+  assert(await desktopPage.locator(".course-product-detail").count() >= 2, "课程产品详情没有保留已查看模块");
   assert(await desktopPage.locator(".course-ai-strategy-card").count() === 3, "AI 教培产品分析模块不完整");
+  assert(await desktopPage.locator(".course-ai-usecase").isVisible(), "AI 教培具体使用场景未展示");
 
   await desktopPage.screenshot({
     path: path.join(evidenceDir, "desktop-home.png"),
