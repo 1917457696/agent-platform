@@ -23,6 +23,7 @@
 
 产品方案文档：
 
+- [面试材料索引](docs/INTERVIEW_MATERIALS_INDEX.md)
 - [完整产品方案](docs/PRODUCT_PROPOSAL.md)
 - [MVP 可行性与边界](docs/MVP_FEASIBILITY.md)
 - [现场讲解与答辩指南](docs/PRESENTATION_GUIDE.md)

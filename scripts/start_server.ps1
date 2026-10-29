@@ -7,7 +7,8 @@ param(
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 $Python = if ($env:EDURAG_PYTHON) { $env:EDURAG_PYTHON } else { "C:\Users\19174\.conda\envs\EduRAG\python.exe" }
-$LogDir = Join-Path $Root "artifacts\server"
+$TempRoot = if ($env:TEMP) { $env:TEMP } else { $Root }
+$LogDir = Join-Path $TempRoot "qixu-server"
 $Stdout = Join-Path $LogDir "stdout.log"
 $Stderr = Join-Path $LogDir "stderr.log"
 
