@@ -49,6 +49,20 @@ npm run build
 python -m uvicorn app.server:app --host 127.0.0.1 --port 8001
 ```
 
+Windows 也可以直接运行项目内的启动脚本（默认使用 `C:\Users\19174\.conda\envs\EduRAG\python.exe`）：
+
+```powershell
+.\scripts\start_server.ps1
+```
+
+需要看到实时日志时：
+
+```powershell
+.\scripts\start_server.ps1 -Foreground
+```
+
+如果 Conda 环境路径不同，可先设置 `$env:EDURAG_PYTHON` 再运行脚本。
+
 打开 `http://127.0.0.1:8001`，在右上角配置你的模型 Key。只配置模型 Key 即可运行，中医教学资料检索会走本地 BM25。
 
 前端开发时可分别启动：
