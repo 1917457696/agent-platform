@@ -12,15 +12,15 @@ $Stdout = Join-Path $LogDir "stdout.log"
 $Stderr = Join-Path $LogDir "stderr.log"
 
 if (-not (Test-Path -LiteralPath $Python)) {
-  throw "找不到 Python：$Python。请设置 EDURAG_PYTHON，或修改脚本中的默认路径。"
+  throw "Python not found: $Python. Set EDURAG_PYTHON or update the default path in this script."
 }
 
 New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
 $Arguments = @("-m", "uvicorn", "app.server:app", "--host", $BindHost, "--port", "$Port")
 
-Write-Host "项目目录：$Root"
-Write-Host "Python：$Python"
-Write-Host "地址：http://${BindHost}:$Port"
+Write-Host "Project root: $Root"
+Write-Host "Python: $Python"
+Write-Host "URL: http://${BindHost}:$Port"
 
 if ($Foreground) {
   Push-Location $Root
@@ -41,14 +41,14 @@ for ($Attempt = 1; $Attempt -le 20; $Attempt++) {
     break
   } catch {
     if ($Attempt -eq 20) {
-      Write-Warning "进程已启动但健康检查未通过，请查看日志：$Stderr"
+      Write-Warning "Process started but health check failed. Check: $Stderr"
     }
   }
 }
 
 if ($Health) {
-  Write-Host "服务已启动：$($Health.StatusCode)"
-  Write-Host "浏览器打开：http://${BindHost}:$Port"
+  Write-Host "Service is ready: $($Health.StatusCode)"
+  Write-Host "Open in browser: http://${BindHost}:$Port"
 }
-Write-Host "进程 PID：$($Process.Id)"
-Write-Host "日志：$Stdout / $Stderr"
+Write-Host "PID: $($Process.Id)"
+Write-Host "Logs: $Stdout / $Stderr"
