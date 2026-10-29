@@ -27,7 +27,7 @@
 - [AI 中医教培产品方案](docs/AI中医教培产品方案.md)
 - [MVP 可行性与边界](docs/MVP可行性与边界.md)
 - [现场答辩演讲稿](docs/现场答辩演讲稿.md)
-- [HTML 演讲者版 PPT](output/huayi-world-tcm-ai-education-html/index.html)
+- [HTML 演讲者版 PPT](output/华医世界AI中医教培演讲版/index.html)
 
 ### 关于登录与历史记录
 
