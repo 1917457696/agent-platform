@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-themes="tokyo-night,corporate-clean,nord,catppuccin-mocha">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>岐序 · AI 中医课程学习与临床实训平台</title>
+  <link rel="stylesheet" href="assets/fonts.css">
+  <link rel="stylesheet" href="assets/base.css">
+  <link rel="stylesheet" id="theme-link" href="assets/themes/tokyo-night.css">
+  <link rel="stylesheet" href="assets/animations/animations.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="tpl-presenter-mode-reveal">
+<div class="deck">
+
+  <section class="slide" data-title="封面" data-no-logo>
+    <p class="kicker">华医世界 · AI 教培产品提案 · 2026.10</p>
+    <h1 class="h1 anim-fade-up" data-anim="fade-up">把一门中医课，<br><span class="gradient-text">变成一位会陪学的老师。</span></h1>
+    <p class="lede mt-m">AI 中医课程学习与临床实训平台</p>
+    <div class="cover-meta"><span class="cover-chip">学懂</span><span>→</span><span class="cover-chip">练习</span><span>→</span><span class="cover-chip">反馈</span><span>→</span><span class="cover-chip">复习</span></div>
+    <div class="speaker"><div class="av"></div><div><b>AI 应用研发方案</b><span>课程 AI 导师 + 医案陪练 + 教师协作</span></div></div>
+    <div class="deck-footer"><span class="mono">#AI教培 #中医学习 #0到1</span><span class="slide-number" data-current="1" data-total="13"></span></div>
+    <aside class="notes"><p>今天我不把这个方案讲成一个单独的问诊机器人。我的核心判断是：华医世界真正有价值的资产是课程、名师经验、医案和训练营运营能力，AI 应该把这些内容升级成持续陪学的服务。</p><p>所以这份提案的主线是<strong>课程 AI 导师、章节练习、医案实训、学习反馈和教师协作</strong>。现有问诊 Agent 只是其中一个可落地模块。接下来我会先讲产品为什么成立，再讲第一期怎么做、哪些边界不能越过，以及需要公司提供什么支持。</p></aside>
+  </section>
+
+  <section class="slide" data-title="一句话定位">
+    <p class="kicker">01 · product thesis</p>
+    <h2 class="h2">不是把课程接上聊天框，<br><span class="accent">而是把课程变成学习服务。</span></h2>
+    <div class="thesis-grid mt-l"><div class="thesis-main"><span class="eyebrow">产品一句话</span><strong>让学员在真实医案里练习临床思路，AI 给出处、给反馈，老师掌握最终判断。</strong></div><div class="thesis-side"><div><b>内容资产</b><span>课程、讲义、名师医案</span></div><div><b>学习过程</b><span>追问、练习、复习建议</span></div><div><b>专业边界</b><span>教学解释，不自动诊疗</span></div></div></div>
+    <aside class="notes"><p>我会先把产品边界说清楚。普通大模型可以回答一个问题，但它不知道学员正在学哪一章、漏掉了哪些辨证依据、上一次错在哪里，也不会自动把反馈交给老师。</p><p>这个产品的差异，是把<strong>课程资料和学习过程绑定</strong>：学员选择课程或医案，AI 先判断当前学习任务，再基于有权限的资料回答；如果信息不足就追问，如果涉及诊断、处方和剂量就进入人工审核。这样才是教培产品，而不是通用聊天。</p></aside>
+  </section>
+
+  <section class="slide" data-title="为什么现在做">
+    <p class="kicker">02 · opportunity</p>
+    <h2 class="h2">华医世界的优势，<br>正好是 AI 最能放大的地方。</h2>
+    <div class="grid g3 mt-l"><div class="card card-accent"><span class="card-index">01</span><h4>名师内容</h4><p class="dim">高价值课程和医案不是一次性观看，而是可以被检索、拆解、练习和复盘。</p></div><div class="card card-accent"><span class="card-index">02</span><h4>训练营运营</h4><p class="dim">班主任、督学、讲师每天面对大量重复答疑和作业反馈，首期价值容易验证。</p></div><div class="card card-accent"><span class="card-index">03</span><h4>临床学习需求</h4><p class="dim">学员不只想听懂，还想知道遇到病例时该问什么、依据是什么、哪里容易错。</p></div></div>
+    <div class="callout mt-l"><span class="mono">判断</span><strong>先把高频重复劳动变成可量化的学习闭环，再逐步扩展成对外可售卖的 AI 学习服务。</strong></div>
+    <aside class="notes"><p>这一页想说明为什么这不是为了追热点而做 AI。华医世界已经有三类可复用资产：第一是名师课程和医案，第二是训练营里的真实学习过程，第三是大量临床骨干学员的反馈。</p><p>AI 的第一步不是替代老师，而是把这些资产重新组织起来。我们可以先从<strong>重复答疑、章节练习和医案反馈</strong>切入，因为它们有明确输入、有明确输出，也比较容易在两周左右做出内部 MVP。验证有效之后，再考虑对外销售和渠道接入。</p></aside>
+  </section>
+
+  <section class="slide" data-title="学习闭环">
+    <p class="kicker">03 · learning loop</p>
+    <h2 class="h2">AI 教培的最小闭环：<br><span class="accent">学懂 → 练习 → 反馈 → 复习</span></h2>
+    <div class="loop mt-l"><div class="loop-step"><span>01</span><b>学懂</b><p>基于章节资料答疑，给出处和上下文。</p></div><div class="arrow">→</div><div class="loop-step"><span>02</span><b>练习</b><p>给出合成医案，学员先做判断。</p></div><div class="arrow">→</div><div class="loop-step"><span>03</span><b>反馈</b><p>指出遗漏的信息、依据和风险点。</p></div><div class="arrow">→</div><div class="loop-step"><span>04</span><b>复习</b><p>推荐章节、错题和下一次练习。</p></div></div>
+    <div class="split-note mt-l"><span class="mono">与普通大模型的区别</span><span>有课程上下文 · 有学习状态 · 有练习任务 · 有教师审核 · 有可追踪指标</span></div>
+    <aside class="notes"><p>AI 教培一定要有学习闭环。第一步是学懂，系统只在课程授权范围内解释概念；第二步是练习，不能只让学员看答案，要给他一个病例和任务；第三步是反馈，指出他漏问了什么、依据是否充分；第四步是复习，把错误回到具体章节和下一道题。</p><p>这几个要素就是和通用大模型的区别。通用模型回答完就结束了，而我们的产品会记录学习任务、反馈和复习路径。这里不预设虚假的提升百分比，先把重复提问、教师采纳率、练习完成率和高风险拦截率测起来。</p></aside>
+  </section>
+
+  <section class="slide" data-title="双模块产品">
+    <p class="kicker">04 · product architecture</p>
+    <h2 class="h2">一条课程主线，<br>两个可以快速落地的模块。</h2>
+    <div class="module-grid mt-l"><div class="module-card module-course"><span class="module-tag">模块 A</span><h3>课程 AI 导师</h3><p>把讲义、老师医案和章节目标变成可对话、可练习的学习单元。</p><ul><li>章节问答与出处</li><li>总结、测验、错题</li><li>个性化复习建议</li></ul></div><div class="module-card module-case"><span class="module-tag">模块 B</span><h3>医案陪练教练</h3><p>把问诊与辨证训练放进课程场景，训练学员主动思考，不直接替代医生。</p><ul><li>缺槽追问与四诊信息补齐</li><li>辨证依据检查</li><li>高风险转教师审核</li></ul></div></div>
+    <div class="flow-strip mt-l"><span>课程资料</span><i>→</i><span>学习任务</span><i>→</i><span>AI 反馈</span><i>→</i><span>教师协作</span><i>→</i><span>学习数据</span></div>
+    <aside class="notes"><p>产品上我建议把两个模块放在同一条课程主线上。课程 AI 导师负责把已有课程变得可问、可练、可复习；医案陪练则负责把临床思维训练做深。</p><p>这样做的好处是复用同一套资料权限、RAG、会话和评测基础，不需要先做两个孤立 App。第一期可以只选一个课程主题和一套合成医案，先把输入、输出、审核和指标跑通。之后再把课程章节、作业、督学提醒和教师端逐步接上。</p></aside>
+  </section>
+
+  <section class="slide" data-title="现场演示">
+    <p class="kicker">05 · demo flow</p>
+    <h2 class="h2">现场演示：<br><span class="accent">学员如何从“会背”走到“会思考”。</span></h2>
+    <div class="demo-flow mt-l"><div class="demo-node active"><span>01</span><b>选课程</b><small>外感咳嗽辨证</small></div><div class="demo-line"></div><div class="demo-node"><span>02</span><b>做判断</b><small>先给出自己的思路</small></div><div class="demo-line"></div><div class="demo-node"><span>03</span><b>补信息</b><small>AI 追问寒热、汗出、痰、舌脉</small></div><div class="demo-line"></div><div class="demo-node"><span>04</span><b>看反馈</b><small>来源、遗漏、复习建议</small></div></div>
+    <div class="demo-guard mt-l"><span class="guard-mark">!</span><div><b>安全闸</b><p>学员要求“直接开方、告诉剂量”时：解释教学边界 → 转教师/执业医师审核 → 保留审计记录。</p></div></div>
+    <aside class="notes"><p>演示我会控制在五分钟左右，不临时写代码。先进入“外感咳嗽辨证”课程，学员给出初步判断；如果他没有提供病程、寒热、汗出、痰、舌象和脉象，系统不会马上给结论，而是按学习任务追问。</p><p>补齐信息后，系统从本地演示资料里返回带出处的教学解释，并生成学习反馈和推荐复习章节。最后我会故意输入“给我开方和剂量”，展示安全闸和教师审核入口。要明确说明：这是合成医案和演示资料，不代表医院生产系统。</p></aside>
+  </section>
+
+  <section class="slide" data-title="技术底座">
+    <p class="kicker">06 · engineering baseline</p>
+    <h2 class="h2">现有能力可以直接复用，<br><span class="accent">先做应用层，再补生产基建。</span></h2>
+    <div class="stack mt-l tech-stack"><div class="tech-row"><span class="tech-num">01</span><div><b>知识检索</b><p>本地课程资料、医案和章节元数据；默认关键词检索，可替换为向量 + BM25 混合检索。</p></div><em>RAG</em></div><div class="tech-row"><span class="tech-num">02</span><div><b>任务编排</b><p>分流、追问、检索、反馈和安全闸按工作流执行，复杂任务再引入 Agent。</p></div><em>Workflow</em></div><div class="tech-row"><span class="tech-num">03</span><div><b>可验证性</b><p>来源引用、SSE 流式输出、trace、审计和 Bad Case 回归，知道每一步在做什么。</p></div><em>Trace</em></div><div class="tech-row"><span class="tech-num">04</span><div><b>安全边界</b><p>教学解释不等于诊疗；处方、剂量和个体化建议进入人工审核。</p></div><em>Guardrail</em></div></div>
+    <aside class="notes"><p>工程上我不会为了展示而重新发明一套系统。现有项目已经有 RAG、Agent/工作流、SSE、来源、trace 和安全闸，这些都可以迁移到课程场景。</p><p>我会把工作流拆成可解释的节点：先识别学习任务，再检索课程内容，再决定是回答、追问还是转人工。默认用关键词检索保证可控，课程规模上来后再接向量和 BM25 的混合检索。这样每次回答都能回到来源，也方便把 Bad Case 加入评测集回归。</p></aside>
+  </section>
+
+  <section class="slide" data-title="效果闭环">
+    <p class="kicker">07 · measurement</p>
+    <h2 class="h2">不先承诺“提升多少”，<br>先把<span class="accent">效果怎么证明</span>设计好。</h2>
+    <div class="metric-grid mt-l"><div class="metric"><strong>重复问题减少量</strong><span>班主任每天少处理多少相同问题</span></div><div class="metric"><strong>教师采纳率</strong><span>AI 反馈有多少被老师直接采用</span></div><div class="metric"><strong>练习完成率</strong><span>学员是否真正完成案例训练</span></div><div class="metric"><strong>有来源回答率</strong><span>回答是否能回到课程或医案出处</span></div><div class="metric"><strong>转人工比例</strong><span>高风险和不确定问题是否正确升级</span></div><div class="metric"><strong>继续学习率</strong><span>学员是否进入下一章或复习任务</span></div></div>
+    <div class="callout mt-l"><span class="mono">教师端</span><strong>查看高频问题 → 审核反馈 → 标记 Bad Case → 反哺课程和评测集。</strong></div>
+    <aside class="notes"><p>AI 教培不能只看模型回答得像不像，还要看学习和运营结果。第一期我会建立一个小的基线：重复问题数量、班主任处理时间、回答有来源比例、教师采纳率、练习完成率和转人工比例。</p><p>这些指标不提前编一个百分比，而是在一个训练营里先跑基线，再做小范围对照。教师端很重要：老师可以审核反馈、标记错误、查看高频问题，系统再把这些 Bad Case 加入评测集。这样产品会越用越稳，而不是上线后没人知道哪里出问题。</p></aside>
+  </section>
+
+  <section class="slide" data-title="MVP计划">
+    <p class="kicker">08 · MVP plan</p>
+    <h2 class="h2">首期只做一个闭环，<br><span class="accent">两周验证价值。</span></h2>
+    <div class="timeline mt-l"><div class="time-card"><span>0—3 天</span><b>场景与资料盘点</b><p>访谈班主任、讲师；确认一个课程主题、授权资料、审核人和指标。</p></div><div class="time-card"><span>4—10 天</span><b>内部 MVP</b><p>课程问答 + 一套医案陪练 + 来源引用 + 学习反馈 + 教师审核。</p></div><div class="time-card"><span>11—14 天</span><b>小范围试用</b><p>邀请一个训练营试用，记录 Bad Case，按数据决定是否扩展。</p></div></div>
+    <div class="scope-grid mt-l"><div><span class="scope-label yes">首期做</span><p>一个主题、一套医案、一个 Web/H5 入口、一个审核流程。</p></div><div><span class="scope-label no">首期不做</span><p>全量课程、完整 App 重构、自动诊疗、复杂社交和全部渠道接入。</p></div></div>
+    <aside class="notes"><p>我会把第一期范围压得很小。0 到 3 天先不写代码，访谈业务并确认课程资料、权限和审核人。第 4 到 10 天做内部 MVP，重点是课程问答、医案陪练、来源、反馈和审核。第 11 到 14 天找一个训练营试用。</p><p>首期不做全量课程，不做完整 App 重构，不做自动诊疗，也不同时接公众号、小程序、企微。这样不是保守，而是先让一个闭环跑起来，再用真实数据决定下一步。一个人可以承担 AI 应用层，但正式生产需要 App、数据、运维和中医专家一起参与。</p></aside>
+  </section>
+
+  <section class="slide" data-title="需求缺口">
+    <p class="kicker">09 · requirements gap</p>
+    <h2 class="h2">需求还不够清楚时，<br>先问清楚<span class="accent">五件事</span>。</h2>
+    <div class="require-grid mt-l"><div><span>01</span><b>用户和场景</b><p>学员、老师、班主任还是销售？发生在哪个学习节点？</p></div><div><span>02</span><b>内容和权限</b><p>哪些课程能用？是否授权？谁能看到哪一类资料？</p></div><div><span>03</span><b>结果和指标</b><p>要省答疑时间、提完成率，还是做新的付费服务？</p></div><div><span>04</span><b>渠道和系统</b><p>先 Web/H5 验证，还是必须进入现有 App？接口、账号、上线流程是什么？</p></div><div><span>05</span><b>审核与责任</b><p>哪些内容必须老师审核？谁对最终发布负责？</p></div></div>
+    <div class="question-line mt-l"><span class="mono">默认推进</span><strong>如果暂时没有答案：先用一个课程主题 + 已授权资料 + 合成医案 + 明确审核人，做可测的内部 MVP。</strong></div>
+    <aside class="notes"><p>复试中如果对方提出一个很大的目标，我不会直接说“都能做”，而会先澄清五件事：用户和场景、内容和权限、结果指标、渠道和系统、审核责任。</p><p>如果需求还不够，我会提出一个默认方案：一个课程主题、已授权资料、合成医案、明确审核人和四到六个指标，先做内部 MVP。这样既能快速给出结果，也不会把不确定的业务和技术风险藏到最后。需求清楚以后，再决定是继续 Web/H5，还是正式接入 App。</p></aside>
+  </section>
+
+  <section class="slide" data-title="边界与解决方案">
+    <p class="kicker">10 · boundaries &amp; solutions</p>
+    <h2 class="h2">不能做的事情要说清楚，<br><span class="accent">同时给出替代路径。</span></h2>
+    <div class="boundary-table mt-l"><div class="boundary-head"><span>当前不能承诺</span><span>原因</span><span>解决办法</span></div><div class="boundary-row"><b>自动诊断 / 自动处方</b><span>医疗安全与责任边界</span><strong>教学解释 + 高风险拦截 + 教师/执业医师审核</strong></div><div class="boundary-row"><b>一夜完成正式 App</b><span>账号、接口、发布和安全缺口</span><strong>先 Web/H5 MVP，再按接口契约接入现有 App</strong></div><div class="boundary-row"><b>保证学习效果提升</b><span>没有基线、对照和长期数据</span><strong>先建立基线，做小范围试用和教师校准</strong></div><div class="boundary-row"><b>全量课程自动化</b><span>资料授权、质量和成本未知</span><strong>先做一个主题，建立内容审核和知识单元规范</strong></div></div>
+    <aside class="notes"><p>这页是我认为必须主动讲的边界。第一，不能把教学产品包装成自动诊疗或自动处方；第二，不能承诺一个人一夜之间完成正式 App；第三，不能在没有基线的情况下承诺学习效果提升；第四，不能把所有课程一股脑自动化。</p><p>但边界不是拒绝。每一项我都给了替代路径：先做教学解释和人工审核，先用 Web/H5 验证，先建立基线，先选一个课程主题。这样既保护业务，也让项目能继续往前走。</p></aside>
+  </section>
+
+  <section class="slide" data-title="App协作">
+    <p class="kicker">11 · app integration</p>
+    <h2 class="h2">App 对接不是我现在假装“全都会”，<br>而是<span class="accent">把接口和职责拆清楚。</span></h2>
+    <div class="app-layers mt-l"><div class="app-layer"><span>AI 应用层</span><b>我可以负责</b><p>场景拆解、RAG、工作流、反馈、SSE、评测和 MVP 部署。</p></div><div class="app-arrow">↕</div><div class="app-layer"><span>接口与账户层</span><b>需要协作</b><p>登录态、session ID、课程权限、历史记录、错误码和 API 契约。</p></div><div class="app-arrow">↕</div><div class="app-layer"><span>生产与运营层</span><b>共同交付</b><p>部署、监控、数据治理、内容审核、版本发布和客服反馈。</p></div></div>
+    <div class="callout mt-l"><span class="mono">我的承诺</span><strong>我能独立把 AI 应用层跑通；正式生产阶段，我会主动拉齐 App、数据、运维和中医专家资源。</strong></div>
+    <aside class="notes"><p>App 负责人可能会问我有没有完整 App 经验。我会如实回答：我目前主要负责 AI 应用层，已经做过接口、流式输出、会话、检索、编排和部署验证；账号体系、正式发布和大型 App 的生产规范，需要和现有研发协作。</p><p>但这不是能力断点，而是职责拆分。接入前先确定 API 契约、登录态、session ID、课程权限、历史记录和错误码，再用一个端到端接口联调。我愿意补齐 App 侧的知识，但不会把没有确认的系统边界直接承诺成“我一个人全部包办”。</p></aside>
+  </section>
+
+  <section class="slide" data-title="岗位与资源">
+    <p class="kicker">12 · role &amp; next step</p>
+    <h2 class="h2">我愿意承担 0 → 1，<br>也会把<span class="accent">成功所需资源</span>说清楚。</h2>
+    <div class="role-grid mt-l"><div class="role-card"><span class="role-label">我负责</span><ul><li>场景调研与 MVP 定义</li><li>RAG / Agent / 工作流研发</li><li>部署、评测、trace 和迭代</li><li>把技术讲给业务听懂</li></ul></div><div class="role-card"><span class="role-label">公司提供</span><ul><li>业务负责人和教师审核人</li><li>课程资料与授权边界</li><li>App / 账号 / 运维接口人</li><li>试用用户与反馈数据</li></ul></div><div class="role-card"><span class="role-label">共同验收</span><ul><li>首期一个课程主题</li><li>可演示的学习闭环</li><li>可追踪的效果指标</li><li>明确的下一阶段决策</li></ul></div></div>
+    <div class="closing-line mt-l"><span>下一步</span><strong>确定一个高频场景 → 选一套课程资料 → 两周跑出 MVP → 用真实反馈决定扩展。</strong></div>
+    <aside class="notes"><p>最后回到岗位本身。我愿意承担从需求调研到 AI 应用上线的 0 到 1，但我会把成功所需的资源一起说清楚：需要一位业务负责人、一位中医内容审核人、现有 App 和运维接口人，以及真实的试用用户。</p><p>我的验收标准不是“写了多少代码”，而是一个课程主题能不能完成学习闭环，回答是否有来源，风险是否能转人工，老师是否愿意采用，学员是否完成练习。只要首期边界明确，我愿意承担挑战，并在过程中把产品、技术和团队基建沉淀下来。</p></aside>
+  </section>
+
+</div>
+<div class="keyboard-hint">S 演讲者视图 · T 切换主题 · ← → 翻页 · F 全屏 · O 总览 · R 重置计时</div>
+<script src="assets/runtime.js"></script>
+</body>
+</html>

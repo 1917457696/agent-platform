@@ -23,10 +23,11 @@
 
 产品方案文档：
 
-- [面试材料索引](docs/INTERVIEW_MATERIALS_INDEX.md)
-- [完整产品方案](docs/PRODUCT_PROPOSAL.md)
-- [MVP 可行性与边界](docs/MVP_FEASIBILITY.md)
-- [现场讲解与答辩指南](docs/PRESENTATION_GUIDE.md)
+- [面试材料索引](docs/面试材料索引.md)
+- [AI 中医教培产品方案](docs/AI中医教培产品方案.md)
+- [MVP 可行性与边界](docs/MVP可行性与边界.md)
+- [现场答辩演讲稿](docs/现场答辩演讲稿.md)
+- [HTML 演讲者版 PPT](output/huayi-world-tcm-ai-education-html/index.html)
 
 ### 关于登录与历史记录
 
