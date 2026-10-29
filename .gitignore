@@ -16,6 +16,7 @@ node_modules/
 frontend/dist/
 coverage/
 artifacts/
+output/~$*
 
 # 本地隔离工作树
 .worktrees/
